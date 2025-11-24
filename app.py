@@ -100,6 +100,9 @@ defaults = {
     "prediction": None,
     "last_feedback": None,
     "last_correct": None,
+
+    # NEW: forces graph to redraw with new labels
+    "graph_version": 0,
 }
 for k, v in defaults.items():
     st.session_state.setdefault(k, v)
@@ -142,34 +145,34 @@ with left:
 
     nodes = [
         # Top big headers
-        Node(id="chrono_header", label="Chronotropic agents\n(alter SA/AV node activity)", x=0, y=0,
+        Node(id="chrono_header", label="Chronotropic agents\n(alter SA node and\nAV node activity)", x=0, y=0,
              size=900, color="#EFE7E5", shape="box", font={"size": 16}),
-        Node(id="venous", label=f"Venous return\n(preload)\n{vr}", x=360, y=0,
-             size=850, color="#FFF6C8", shape="box", font={"size": 16}),
-        Node(id="ino_header", label="Inotropic agents\n(alter contractility)", x=720, y=0,
+        Node(id="venous", label=f"Venous return\n(volume of blood returning\nto heart alters stretch\nor preload)\n{vr}", x=360, y=0,
+             size=900, color="#FFF6C8", shape="box", font={"size": 16}),
+        Node(id="ino_header", label="Inotropic agents\n(substances that alter\ncontractility of myocardium)", x=720, y=0,
              size=900, color="#FFF0EC", shape="box", font={"size": 16}),
-        Node(id="afterload", label=f"Afterload\n{al}", x=1080, y=0,
-             size=850, color="#E1E8FF", shape="box", font={"size": 16}),
+        Node(id="afterload", label=f"Afterload\n(increased resistance\nin arteries)\n{al}", x=1080, y=0,
+             size=900, color="#E1E8FF", shape="box", font={"size": 16}),
 
         # Sub-boxes under chrono/inotropy
-        Node(id="chrono_pos", label=f"Positive agents\n{cp}", x=-120, y=160,
+        Node(id="chrono_pos", label=f"Positive agents\n{cp}", x=-120, y=170,
              size=650, color="#FFE8A3", shape="box", font={"size": 15}),
-        Node(id="chrono_neg", label=f"Negative agents\n{cn}", x=120, y=160,
+        Node(id="chrono_neg", label=f"Negative agents\n{cn}", x=120, y=170,
              size=650, color="#FFE8A3", shape="box", font={"size": 15}),
 
-        Node(id="ino_pos", label=f"Positive agents\n{ip}", x=600, y=160,
+        Node(id="ino_pos", label=f"Positive agents\n{ip}", x=600, y=170,
              size=650, color="#FFD6CC", shape="box", font={"size": 15}),
-        Node(id="ino_neg", label=f"Negative agents\n{inn}", x=840, y=160,
+        Node(id="ino_neg", label=f"Negative agents\n{inn}", x=840, y=170,
              size=650, color="#FFD6CC", shape="box", font={"size": 15}),
 
         # Middle physiology
-        Node(id="hr", label=f"Heart rate (HR)\n{HR_arrow}", x=0, y=360,
+        Node(id="hr", label=f"Heart rate (beats per minute)\n{HR_arrow}", x=0, y=380,
              size=950, color="#FFFFFF", shape="box", font={"size": 18}),
-        Node(id="sv", label=f"Stroke volume (SV)\n{SV_arrow}", x=720, y=360,
+        Node(id="sv", label=f"Stroke volume (blood pumped per beat)\n{SV_arrow}", x=720, y=380,
              size=950, color="#FFFFFF", shape="box", font={"size": 18}),
 
         # Bottom output
-        Node(id="co", label=f"Cardiac output (CO)\n{CO_arrow}", x=360, y=560,
+        Node(id="co", label=f"Cardiac output (blood pumped per minute)\n{CO_arrow}", x=360, y=590,
              size=1050, color="#F3D6DA", shape="box", font={"size": 18}),
     ]
 
@@ -194,7 +197,13 @@ with left:
         fit=True
     )
 
-    clicked = agraph(nodes=nodes, edges=edges, config=config)
+    # NEW: key uses graph_version so chart redraws when results are shown
+    clicked = agraph(
+        nodes=nodes,
+        edges=edges,
+        config=config,
+        key=f"graph_{st.session_state.graph_version}_{st.session_state.phase}"
+    )
 
     controllables = {"chrono_pos", "chrono_neg", "ino_pos", "ino_neg", "venous", "afterload"}
 
@@ -203,7 +212,6 @@ with left:
         st.session_state.selected_node = clicked
         st.session_state.phase = "choose_dir"
         st.rerun()
-
 
     # ---- PHASE: choose_dir (increase/decrease) ----
     if st.session_state.phase == "choose_dir" and st.session_state.selected_node:
@@ -282,6 +290,9 @@ with left:
                     eff_key = key_map[node]
                     st.session_state[eff_key] = st.session_state.pending_direction
 
+                    # NEW: bump version to force downstream redraw
+                    st.session_state.graph_version += 1
+
                     # compute after
                     _, _, CO_after = compute_state()
                     dir_CO = expected_direction(CO_before, CO_after)
@@ -312,6 +323,9 @@ with left:
                 }
                 eff_key = key_map[node]
                 st.session_state[eff_key] = st.session_state.pending_direction
+
+                # NEW: bump version to force downstream redraw
+                st.session_state.graph_version += 1
 
                 _, _, CO_after = compute_state()
                 dir_CO = expected_direction(CO_before, CO_after)
