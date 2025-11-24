@@ -143,48 +143,50 @@ with left:
     vr = effect_arrow(st.session_state.venous_return_effect)
     al = effect_arrow(st.session_state.afterload_effect)
 
-    # EVEN TIGHTER COORDINATES so fit=True zooms IN
+    # Coordinates tuned to match your desired initial zoom.
+    # Bounding box is wider (x ~ -140..980) and a bit shorter (y ~ 0..520).
     nodes = [
-        # Top big headers
+        # Top row headers
         Node(id="chrono_header",
              label="Chronotropic agents\n(alter SA node and\nAV node activity)",
-             x=0, y=0, size=980, color="#EFE7E5", shape="box", font={"size": 18}),
+             x=0,   y=0, size=980, color="#EFE7E5", shape="box", font={"size": 18}),
 
         Node(id="venous",
              label=f"Venous return\n(preload)\n{vr}",
-             x=180, y=0, size=930, color="#FFF6C8", shape="box", font={"size": 18}),
+             x=340, y=0, size=930, color="#FFF6C8", shape="box", font={"size": 18}),
 
         Node(id="ino_header",
              label="Inotropic agents\n(alter contractility)",
-             x=360, y=0, size=980, color="#FFF0EC", shape="box", font={"size": 18}),
+             x=680, y=0, size=980, color="#FFF0EC", shape="box", font={"size": 18}),
 
         Node(id="afterload",
              label=f"Afterload\n{al}",
-             x=540, y=0, size=930, color="#E1E8FF", shape="box", font={"size": 18}),
+             x=980, y=0, size=930, color="#E1E8FF", shape="box", font={"size": 18}),
 
-        # Sub-boxes under chrono/inotropy
+        # Sub-boxes
         Node(id="chrono_pos", label=f"Positive agents\n{cp}",
-             x=-60, y=150, size=720, color="#FFE8A3", shape="box", font={"size": 16}),
+             x=-140, y=150, size=720, color="#FFE8A3", shape="box", font={"size": 16}),
         Node(id="chrono_neg", label=f"Negative agents\n{cn}",
-             x=60, y=150, size=720, color="#FFE8A3", shape="box", font={"size": 16}),
+             x=140,  y=150, size=720, color="#FFE8A3", shape="box", font={"size": 16}),
 
         Node(id="ino_pos", label=f"Positive agents\n{ip}",
-             x=300, y=150, size=720, color="#FFD6CC", shape="box", font={"size": 16}),
+             x=540,  y=150, size=720, color="#FFD6CC", shape="box", font={"size": 16}),
         Node(id="ino_neg", label=f"Negative agents\n{inn}",
-             x=420, y=150, size=720, color="#FFD6CC", shape="box", font={"size": 16}),
+             x=820,  y=150, size=720, color="#FFD6CC", shape="box", font={"size": 16}),
 
-        # Middle physiology
+        # Physiology row
         Node(id="hr", label=f"Heart rate (HR)\n{HR_arrow}",
-             x=0, y=320, size=1050, color="#FFFFFF", shape="box", font={"size": 20}),
-        Node(id="sv", label=f"Stroke volume (SV)\n{SV_arrow}",
-             x=360, y=320, size=1050, color="#FFFFFF", shape="box", font={"size": 20}),
+             x=0,   y=310, size=1050, color="#FFFFFF", shape="box", font={"size": 20}),
 
-        # Bottom output
+        Node(id="sv", label=f"Stroke volume (SV)\n{SV_arrow}",
+             x=680, y=310, size=1050, color="#FFFFFF", shape="box", font={"size": 20}),
+
+        # Output
         Node(id="co", label=f"Cardiac output (CO)\n{CO_arrow}",
-             x=180, y=510, size=1150, color="#F3D6DA", shape="box", font={"size": 20}),
+             x=340, y=500, size=1150, color="#F3D6DA", shape="box", font={"size": 20}),
     ]
 
-    # Invisible force-redraw node
+    # Invisible force-redraw node (keeps your refresh behavior)
     nodes.append(
         Node(
             id=f"_force_{st.session_state.graph_version}",
@@ -210,19 +212,19 @@ with left:
 
     config = Config(
         width="100%",
-        height=700,
+        height=680,
         directed=True,
         physics=False,
         staticGraph=True,
         nodeHighlightBehavior=True,
-        fit=True   # now that coords are tight, this zooms IN nicely
+        fit=True,          # auto-zoom to the tuned bounding box
+        levelSeparation=120
     )
 
     clicked = agraph(nodes=nodes, edges=edges, config=config)
 
     controllables = {"chrono_pos", "chrono_neg", "ino_pos", "ino_neg", "venous", "afterload"}
 
-    # Phase 1: selecting one box
     if st.session_state.phase == "select_box" and clicked in controllables:
         st.session_state.selected_node = clicked
         st.session_state.phase = "choose_dir"
@@ -302,7 +304,7 @@ with left:
                     eff_key = key_map[node]
                     st.session_state[eff_key] = st.session_state.pending_direction
 
-                    st.session_state.graph_version += 1  # force redraw
+                    st.session_state.graph_version += 1
 
                     _, _, CO_after = compute_state()
                     dir_CO = expected_direction(CO_before, CO_after)
@@ -334,7 +336,7 @@ with left:
                 eff_key = key_map[node]
                 st.session_state[eff_key] = st.session_state.pending_direction
 
-                st.session_state.graph_version += 1  # force redraw
+                st.session_state.graph_version += 1
 
                 _, _, CO_after = compute_state()
                 dir_CO = expected_direction(CO_before, CO_after)
