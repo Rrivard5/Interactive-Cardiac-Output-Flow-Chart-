@@ -92,8 +92,34 @@ def compute_state():
 # ---------------------------
 # Initialize session state
 # ---------------------------
-if "initialized" not in st.session_state:
-    st.session_state.initialized = True
+# ---------------------------
+# Initialize / ensure session state defaults
+# (prevents missing-key errors after app updates)
+# ---------------------------
+defaults = {
+    # Baselines
+    "hr_baseline": 70.0,
+    "sv_baseline": 70.0,
+
+    # Discrete effects: -1 (↓), 0 (—), +1 (↑)
+    "chrono_pos_effect": 0,
+    "chrono_neg_effect": 0,
+    "ino_pos_effect": 0,
+    "ino_neg_effect": 0,
+    "venous_return_effect": 0,
+    "afterload_effect": 0,
+
+    # UI memory
+    "show_quiz": False,
+    "quiz_node": None,
+    "prediction": None,
+    "was_correct": None,
+    "confusion_point": None,
+}
+
+for k, v in defaults.items():
+    st.session_state.setdefault(k, v)
+
 
     # Baselines (teacher adjustable)
     st.session_state.hr_baseline = 70.0
