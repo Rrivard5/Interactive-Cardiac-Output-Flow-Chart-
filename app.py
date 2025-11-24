@@ -132,52 +132,55 @@ CO_arrow = effect_arrow(co_dir)
 with left:
     st.markdown("### Flow chart")
 
-    cp = effect_arrow(st.session_state.chrono_pos_effect)
-    cn = effect_arrow(st.session_state.chrono_neg_effect)
-    ip = effect_arrow(st.session_state.ino_pos_effect)
-    inn= effect_arrow(st.session_state.ino_neg_effect)
-    vr = effect_arrow(st.session_state.venous_return_effect)
-    al = effect_arrow(st.session_state.afterload_effect)
+    cp  = effect_arrow(st.session_state.chrono_pos_effect)
+    cn  = effect_arrow(st.session_state.chrono_neg_effect)
+    ip  = effect_arrow(st.session_state.ino_pos_effect)
+    inn = effect_arrow(st.session_state.ino_neg_effect)
+    vr  = effect_arrow(st.session_state.venous_return_effect)
+    al  = effect_arrow(st.session_state.afterload_effect)
 
-    # Coordinates intentionally compact so default zoom is close-up.
+    # Coordinates tuned for readable default fit
     nodes = [
-        # Top headers (compact x-range ~ -120..520)
+        # Top headers (moderate spread so fit=True zooms in nicely)
         Node(id="chrono_header",
              label="Chronotropic agents\n(alter SA node and\nAV node activity)",
-             x=0,   y=0, size=1050, color="#EFE7E5", shape="box", font={"size": 19}),
+             x=0,   y=0, size=1000, color="#EFE7E5", shape="box", font={"size": 18}),
 
         Node(id="venous",
              label=f"Venous return\n(preload)\n{vr}",
-             x=170, y=0, size=980, color="#FFF6C8", shape="box", font={"size": 19}),
+             x=320, y=0, size=940, color="#FFF6C8", shape="box", font={"size": 18}),
 
         Node(id="ino_header",
              label="Inotropic agents\n(alter contractility)",
-             x=340, y=0, size=1050, color="#FFF0EC", shape="box", font={"size": 19}),
+             x=640, y=0, size=1000, color="#FFF0EC", shape="box", font={"size": 18}),
 
+        # Afterload slightly farther right to keep its line clear
         Node(id="afterload",
              label=f"Afterload\n{al}",
-             x=520, y=0, size=980, color="#E1E8FF", shape="box", font={"size": 19}),
+             x=1020, y=0, size=940, color="#E1E8FF", shape="box", font={"size": 18}),
 
-        # Sub-boxes
+        # Sub-boxes under chrono/inotropy
         Node(id="chrono_pos", label=f"Positive agents\n{cp}",
-             x=-90, y=150, size=780, color="#FFE8A3", shape="box", font={"size": 17}),
+             x=-140, y=160, size=720, color="#FFE8A3", shape="box", font={"size": 16}),
         Node(id="chrono_neg", label=f"Negative agents\n{cn}",
-             x=90,  y=150, size=780, color="#FFE8A3", shape="box", font={"size": 17}),
+             x=140,  y=160, size=720, color="#FFE8A3", shape="box", font={"size": 16}),
 
+        # Inotropic agents moved closer together and left
         Node(id="ino_pos", label=f"Positive agents\n{ip}",
-             x=280, y=150, size=780, color="#FFD6CC", shape="box", font={"size": 17}),
+             x=560, y=160, size=720, color="#FFD6CC", shape="box", font={"size": 16}),
         Node(id="ino_neg", label=f"Negative agents\n{inn}",
-             x=420, y=150, size=780, color="#FFD6CC", shape="box", font={"size": 17}),
+             x=720, y=160, size=720, color="#FFD6CC", shape="box", font={"size": 16}),
 
-        # Physiology
+        # Physiology row
         Node(id="hr", label=f"Heart rate (HR)\n{HR_arrow}",
-             x=0,   y=310, size=1150, color="#FFFFFF", shape="box", font={"size": 21}),
+             x=0,   y=360, size=1080, color="#FFFFFF", shape="box", font={"size": 20}),
+
         Node(id="sv", label=f"Stroke volume (SV)\n{SV_arrow}",
-             x=340, y=310, size=1150, color="#FFFFFF", shape="box", font={"size": 21}),
+             x=640, y=360, size=1080, color="#FFFFFF", shape="box", font={"size": 20}),
 
         # Output
         Node(id="co", label=f"Cardiac output (CO)\n{CO_arrow}",
-             x=170, y=500, size=1250, color="#F3D6DA", shape="box", font={"size": 21}),
+             x=320, y=560, size=1180, color="#F3D6DA", shape="box", font={"size": 20}),
     ]
 
     # Invisible redraw node
@@ -200,24 +203,25 @@ with left:
         Edge(source="ino_pos", target="sv"),
         Edge(source="ino_neg", target="sv"),
         Edge(source="afterload", target="sv"),
+
         Edge(source="hr", target="co"),
         Edge(source="sv", target="co"),
     ]
 
     config = Config(
         width="100%",
-        height=680,
+        height=700,
         directed=True,
         physics=False,
-        staticGraph=True,  # no dragging nodes
+        staticGraph=True,   # no node dragging
         nodeHighlightBehavior=True,
-        fit=False,         # prevents auto zoom-out differences across screens
+        fit=True,           # readable default zoom
 
-        # disable student panning/zooming of the canvas
+        # Students CAN zoom, but cannot drag nodes or pan the view
         interaction={
             "dragNodes": False,
             "dragView": False,
-            "zoomView": False
+            "zoomView": True
         }
     )
 
@@ -234,7 +238,6 @@ with left:
     # ---- choose direction ----
     if st.session_state.phase == "choose_dir" and st.session_state.selected_node:
         node = st.session_state.selected_node
-
         title_map = {
             "chrono_pos": "Positive chronotropic agents",
             "chrono_neg": "Negative chronotropic agents",
@@ -379,7 +382,7 @@ with right:
             )
 
         if st.button("Start a new round"):
-            # reset arrows back to baseline
+            # reset arrows
             st.session_state.chrono_pos_effect = 0
             st.session_state.chrono_neg_effect = 0
             st.session_state.ino_pos_effect = 0
