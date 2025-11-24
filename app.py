@@ -86,14 +86,14 @@ defaults = {
     "venous_return_effect": 0,
     "afterload_effect": 0,
 
-    "phase": "select_box",
+    "phase": "select_box",  # select_box → choose_dir → predict → show_result
     "selected_node": None,
     "pending_direction": None,
     "prediction": None,
     "last_feedback": None,
     "last_correct": None,
 
-    "graph_version": 0,
+    "graph_version": 0,  # forces redraw
 }
 for k, v in defaults.items():
     st.session_state.setdefault(k, v)
@@ -107,7 +107,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-left, right = st.columns([2.2, 1.0], gap="large")
+left, right = st.columns([2.1, 1.0], gap="large")
 
 # ---------------------------
 # Compute downstream arrows
@@ -134,46 +134,38 @@ with left:
     vr  = effect_arrow(st.session_state.venous_return_effect)
     al  = effect_arrow(st.session_state.afterload_effect)
 
-    # Balanced bounding box so fit=True fills the screen & centers.
     nodes = [
-        # Top headers
         Node(id="chrono_header",
-             label="Chronotropic agents\n(alter SA/AV node activity)",
-             x=0,   y=0, size=1000, color="#EFE7E5", shape="box", font={"size": 22}),
-
+             label="Chronotropic agents\n(alter SA node and\nAV node activity)",
+             x=0,   y=0, size=1200, color="#EFE7E5", shape="box", font={"size": 20}),
         Node(id="venous",
              label=f"Venous return\n(preload)\n{vr}",
-             x=260, y=0, size=960, color="#FFF6C8", shape="box", font={"size": 22}),
-
+             x=280, y=0, size=1100, color="#FFF6C8", shape="box", font={"size": 20}),
         Node(id="ino_header",
              label="Inotropic agents\n(alter contractility)",
-             x=520, y=0, size=1000, color="#FFF0EC", shape="box", font={"size": 22}),
-
+             x=560, y=0, size=1200, color="#FFF0EC", shape="box", font={"size": 20}),
         Node(id="afterload",
              label=f"Afterload\n{al}",
-             x=780, y=0, size=960, color="#E1E8FF", shape="box", font={"size": 22}),
+             x=860, y=0, size=1100, color="#E1E8FF", shape="box", font={"size": 20}),
 
-        # Sub-boxes
         Node(id="chrono_pos", label=f"Positive agents\n{cp}",
-             x=-90,  y=155, size=820, color="#FFE8A3", shape="box", font={"size": 20}),
+             x=-120, y=170, size=900, color="#FFE8A3", shape="box", font={"size": 18}),
         Node(id="chrono_neg", label=f"Negative agents\n{cn}",
-             x=90,   y=155, size=820, color="#FFE8A3", shape="box", font={"size": 20}),
+             x=120,  y=170, size=900, color="#FFE8A3", shape="box", font={"size": 18}),
 
-        # Inotropes moved slightly inward to avoid afterload line
+        # moved closer together / left to avoid afterload line
         Node(id="ino_pos", label=f"Positive agents\n{ip}",
-             x=455,  y=155, size=820, color="#FFD6CC", shape="box", font={"size": 20}),
+             x=500, y=170, size=900, color="#FFD6CC", shape="box", font={"size": 18}),
         Node(id="ino_neg", label=f"Negative agents\n{inn}",
-             x=585,  y=155, size=820, color="#FFD6CC", shape="box", font={"size": 20}),
+             x=640, y=170, size=900, color="#FFD6CC", shape="box", font={"size": 18}),
 
-        # Physiology
         Node(id="hr", label=f"Heart rate (HR)\n{HR_arrow}",
-             x=0,   y=330, size=1100, color="#FFFFFF", shape="box", font={"size": 24}),
+             x=0,   y=380, size=1300, color="#FFFFFF", shape="box", font={"size": 22}),
         Node(id="sv", label=f"Stroke volume (SV)\n{SV_arrow}",
-             x=520, y=330, size=1100, color="#FFFFFF", shape="box", font={"size": 24}),
+             x=560, y=380, size=1300, color="#FFFFFF", shape="box", font={"size": 22}),
 
-        # Output
         Node(id="co", label=f"Cardiac output (CO)\n{CO_arrow}",
-             x=260, y=520, size=1200, color="#F3D6DA", shape="box", font={"size": 24}),
+             x=280, y=585, size=1400, color="#F3D6DA", shape="box", font={"size": 22}),
     ]
 
     # Invisible redraw node
@@ -202,15 +194,15 @@ with left:
 
     config = Config(
         width="100%",
-        height=820,         # bigger viewport so it fills the page
+        height=720,
         directed=True,
         physics=False,
-        staticGraph=True,   # lock nodes in place
+        staticGraph=True,  # lock nodes
         nodeHighlightBehavior=True,
-        fit=True,           # should now start screen-filling & centered
+        fit=True,          # start zoomed in on tight box
         interaction={
             "dragNodes": False,
-            "dragView": True,   # allow pan if they zoom
+            "dragView": True,   # allow pan after zoom
             "zoomView": True
         }
     )
@@ -218,7 +210,7 @@ with left:
     clicked = agraph(nodes=nodes, edges=edges, config=config)
 
 # ---------------------------
-# click → phase transitions
+# AFTER graph: handle click → phase transitions
 # ---------------------------
 controllables = {"chrono_pos", "chrono_neg", "ino_pos", "ino_neg", "venous", "afterload"}
 
@@ -228,12 +220,12 @@ if st.session_state.phase == "select_box" and clicked in controllables:
     st.rerun()
 
 # ---------------------------
-# RIGHT: dialogs + results
+# RIGHT: student dialogs + results
 # ---------------------------
 with right:
     st.markdown("### Student step")
 
-    # ---- choose direction ----
+    # ---- PHASE: choose_dir ----
     if st.session_state.phase == "choose_dir" and st.session_state.selected_node:
         node = st.session_state.selected_node
         title_map = {
@@ -276,7 +268,7 @@ with right:
                     st.session_state.phase = "predict"
                     st.rerun()
 
-    # ---- predict ----
+    # ---- PHASE: predict ----
     if st.session_state.phase == "predict" and st.session_state.selected_node:
         node = st.session_state.selected_node
         _, _, CO_before = compute_state()
@@ -300,6 +292,7 @@ with right:
                     }
                     eff_key = key_map[node]
                     st.session_state[eff_key] = st.session_state.pending_direction
+
                     st.session_state.graph_version += 1  # redraw
 
                     _, _, CO_after = compute_state()
@@ -317,7 +310,6 @@ with right:
                             index=None)
             if st.button("Submit prediction"):
                 st.session_state.prediction = pred
-
                 key_map = {
                     "chrono_pos": "chrono_pos_effect",
                     "chrono_neg": "chrono_neg_effect",
@@ -328,6 +320,7 @@ with right:
                 }
                 eff_key = key_map[node]
                 st.session_state[eff_key] = st.session_state.pending_direction
+
                 st.session_state.graph_version += 1
 
                 _, _, CO_after = compute_state()
@@ -339,7 +332,7 @@ with right:
                 st.session_state.phase = "show_result"
                 st.rerun()
 
-    # ---- results ----
+    # ---- PHASE: show_result ----
     if st.session_state.phase == "show_result":
         st.markdown(
             f"""
@@ -378,6 +371,7 @@ with right:
             st.session_state.afterload_effect = 0
 
             st.session_state.graph_version += 1
+
             st.session_state.phase = "select_box"
             st.session_state.selected_node = None
             st.session_state.pending_direction = None
