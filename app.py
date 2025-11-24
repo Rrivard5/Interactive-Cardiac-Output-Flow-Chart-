@@ -204,11 +204,6 @@ with left:
         st.session_state.phase = "choose_dir"
         st.rerun()
 
-# ---------------------------
-# RIGHT: learning-cycle popups + teacher panel
-# ---------------------------
-with right:
-    st.markdown("### Student step")
 
     # ---- PHASE: choose_dir (increase/decrease) ----
     if st.session_state.phase == "choose_dir" and st.session_state.selected_node:
@@ -363,22 +358,5 @@ with right:
             st.rerun()
 
     st.divider()
-
-    st.markdown("### Teacher controls (optional)")
-    with st.expander("Hidden baselines"):
-        st.session_state.hr_baseline = st.slider("Baseline HR (hidden)", 40, 120, int(st.session_state.hr_baseline))
-        st.session_state.sv_baseline = st.slider("Baseline SV (hidden)", 40, 120, int(st.session_state.sv_baseline))
-        if st.button("Reset all arrows to baseline (—)"):
-            st.session_state.chrono_pos_effect = 0
-            st.session_state.chrono_neg_effect = 0
-            st.session_state.ino_pos_effect = 0
-            st.session_state.ino_neg_effect = 0
-            st.session_state.venous_return_effect = 0
-            st.session_state.afterload_effect = 0
-            st.session_state.phase = "select_box"
-            st.session_state.selected_node = None
-            st.session_state.pending_direction = None
-            st.session_state.prediction = None
-            st.rerun()
 
 st.caption("Arrows show direction of change only. CO = HR × SV (simplified learning model).")
