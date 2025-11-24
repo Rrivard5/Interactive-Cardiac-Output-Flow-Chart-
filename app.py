@@ -101,7 +101,7 @@ defaults = {
     "last_feedback": None,
     "last_correct": None,
 
-    # NEW: forces graph to redraw with new labels
+    # version counter to force redraw
     "graph_version": 0,
 }
 for k, v in defaults.items():
@@ -176,6 +176,21 @@ with left:
              size=1050, color="#F3D6DA", shape="box", font={"size": 18}),
     ]
 
+    # ---- NEW: invisible force-redraw node ----
+    # Its ID changes every time graph_version changes,
+    # which forces streamlit-agraph to re-render.
+    nodes.append(
+        Node(
+            id=f"_force_{st.session_state.graph_version}",
+            label="",
+            x=-9999, y=-9999,
+            size=1,
+            color="#FFFFFF",
+            shape="dot",
+            font={"size": 1}
+        )
+    )
+
     edges = [
         Edge(source="chrono_pos", target="hr"),
         Edge(source="chrono_neg", target="hr"),
@@ -197,13 +212,8 @@ with left:
         fit=True
     )
 
-    # NEW: key uses graph_version so chart redraws when results are shown
-    clicked = agraph(
-        nodes=nodes,
-        edges=edges,
-        config=config,
-        key=f"graph_{st.session_state.graph_version}_{st.session_state.phase}"
-    )
+    # IMPORTANT: no key= here (agraph doesn't accept it)
+    clicked = agraph(nodes=nodes, edges=edges, config=config)
 
     controllables = {"chrono_pos", "chrono_neg", "ino_pos", "ino_neg", "venous", "afterload"}
 
@@ -278,7 +288,6 @@ with left:
                 if st.button("Submit prediction"):
                     st.session_state.prediction = pred
 
-                    # apply the change NOW
                     key_map = {
                         "chrono_pos": "chrono_pos_effect",
                         "chrono_neg": "chrono_neg_effect",
@@ -290,10 +299,9 @@ with left:
                     eff_key = key_map[node]
                     st.session_state[eff_key] = st.session_state.pending_direction
 
-                    # NEW: bump version to force downstream redraw
+                    # bump version so invisible node changes -> full redraw
                     st.session_state.graph_version += 1
 
-                    # compute after
                     _, _, CO_after = compute_state()
                     dir_CO = expected_direction(CO_before, CO_after)
                     correct = (dir_CO == pred)
@@ -324,8 +332,7 @@ with left:
                 eff_key = key_map[node]
                 st.session_state[eff_key] = st.session_state.pending_direction
 
-                # NEW: bump version to force downstream redraw
-                st.session_state.graph_version += 1
+                st.session_state.graph_version += 1  # force redraw
 
                 _, _, CO_after = compute_state()
                 dir_CO = expected_direction(CO_before, CO_after)
@@ -336,7 +343,7 @@ with left:
                 st.session_state.phase = "show_result"
                 st.rerun()
 
-    # ---- PHASE: show_result (then reset to allow next round) ----
+    # ---- PHASE: show_result ----
     if st.session_state.phase == "show_result":
         st.markdown(
             f"""
