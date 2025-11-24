@@ -37,7 +37,6 @@ st.markdown(
 # Helpers
 # ---------------------------
 def effect_arrow(effect: int):
-    """effect is -1, 0, +1"""
     return "↑" if effect > 0 else ("↓" if effect < 0 else "—")
 
 def expected_direction(before, after, eps=1e-6):
@@ -85,7 +84,6 @@ defaults = {
     "hr_baseline": 70.0,
     "sv_baseline": 70.0,
 
-    # controllable arrows
     "chrono_pos_effect": 0,
     "chrono_neg_effect": 0,
     "ino_pos_effect": 0,
@@ -93,15 +91,13 @@ defaults = {
     "venous_return_effect": 0,
     "afterload_effect": 0,
 
-    # learning cycle state machine
-    "phase": "select_box",  # select_box → choose_dir → predict → show_result
+    "phase": "select_box",
     "selected_node": None,
-    "pending_direction": None,  # +1 or -1
+    "pending_direction": None,
     "prediction": None,
     "last_feedback": None,
     "last_correct": None,
 
-    # version counter to force redraw
     "graph_version": 0,
 }
 for k, v in defaults.items():
@@ -131,7 +127,7 @@ SV_arrow = effect_arrow(sv_dir)
 CO_arrow = effect_arrow(co_dir)
 
 # ---------------------------
-# LEFT: flow chart (fixed layout like your image)
+# LEFT: flow chart
 # ---------------------------
 with left:
     st.markdown("### Flow chart")
@@ -143,50 +139,48 @@ with left:
     vr = effect_arrow(st.session_state.venous_return_effect)
     al = effect_arrow(st.session_state.afterload_effect)
 
-    # Coordinates tuned to match your desired initial zoom.
-    # Bounding box is wider (x ~ -140..980) and a bit shorter (y ~ 0..520).
+    # Coordinates intentionally compact so default zoom is close-up.
     nodes = [
-        # Top row headers
+        # Top headers (compact x-range ~ -120..520)
         Node(id="chrono_header",
              label="Chronotropic agents\n(alter SA node and\nAV node activity)",
-             x=0,   y=0, size=980, color="#EFE7E5", shape="box", font={"size": 18}),
+             x=0,   y=0, size=1050, color="#EFE7E5", shape="box", font={"size": 19}),
 
         Node(id="venous",
              label=f"Venous return\n(preload)\n{vr}",
-             x=340, y=0, size=930, color="#FFF6C8", shape="box", font={"size": 18}),
+             x=170, y=0, size=980, color="#FFF6C8", shape="box", font={"size": 19}),
 
         Node(id="ino_header",
              label="Inotropic agents\n(alter contractility)",
-             x=680, y=0, size=980, color="#FFF0EC", shape="box", font={"size": 18}),
+             x=340, y=0, size=1050, color="#FFF0EC", shape="box", font={"size": 19}),
 
         Node(id="afterload",
              label=f"Afterload\n{al}",
-             x=980, y=0, size=930, color="#E1E8FF", shape="box", font={"size": 18}),
+             x=520, y=0, size=980, color="#E1E8FF", shape="box", font={"size": 19}),
 
         # Sub-boxes
         Node(id="chrono_pos", label=f"Positive agents\n{cp}",
-             x=-140, y=150, size=720, color="#FFE8A3", shape="box", font={"size": 16}),
+             x=-90, y=150, size=780, color="#FFE8A3", shape="box", font={"size": 17}),
         Node(id="chrono_neg", label=f"Negative agents\n{cn}",
-             x=140,  y=150, size=720, color="#FFE8A3", shape="box", font={"size": 16}),
+             x=90,  y=150, size=780, color="#FFE8A3", shape="box", font={"size": 17}),
 
         Node(id="ino_pos", label=f"Positive agents\n{ip}",
-             x=540,  y=150, size=720, color="#FFD6CC", shape="box", font={"size": 16}),
+             x=280, y=150, size=780, color="#FFD6CC", shape="box", font={"size": 17}),
         Node(id="ino_neg", label=f"Negative agents\n{inn}",
-             x=820,  y=150, size=720, color="#FFD6CC", shape="box", font={"size": 16}),
+             x=420, y=150, size=780, color="#FFD6CC", shape="box", font={"size": 17}),
 
-        # Physiology row
+        # Physiology
         Node(id="hr", label=f"Heart rate (HR)\n{HR_arrow}",
-             x=0,   y=310, size=1050, color="#FFFFFF", shape="box", font={"size": 20}),
-
+             x=0,   y=310, size=1150, color="#FFFFFF", shape="box", font={"size": 21}),
         Node(id="sv", label=f"Stroke volume (SV)\n{SV_arrow}",
-             x=680, y=310, size=1050, color="#FFFFFF", shape="box", font={"size": 20}),
+             x=340, y=310, size=1150, color="#FFFFFF", shape="box", font={"size": 21}),
 
         # Output
         Node(id="co", label=f"Cardiac output (CO)\n{CO_arrow}",
-             x=340, y=500, size=1150, color="#F3D6DA", shape="box", font={"size": 20}),
+             x=170, y=500, size=1250, color="#F3D6DA", shape="box", font={"size": 21}),
     ]
 
-    # Invisible force-redraw node (keeps your refresh behavior)
+    # Invisible redraw node
     nodes.append(
         Node(
             id=f"_force_{st.session_state.graph_version}",
@@ -215,22 +209,29 @@ with left:
         height=680,
         directed=True,
         physics=False,
-        staticGraph=True,
+        staticGraph=True,  # no dragging nodes
         nodeHighlightBehavior=True,
-        fit=True,          # auto-zoom to the tuned bounding box
-        levelSeparation=120
+        fit=False,         # prevents auto zoom-out differences across screens
+
+        # disable student panning/zooming of the canvas
+        interaction={
+            "dragNodes": False,
+            "dragView": False,
+            "zoomView": False
+        }
     )
 
     clicked = agraph(nodes=nodes, edges=edges, config=config)
 
     controllables = {"chrono_pos", "chrono_neg", "ino_pos", "ino_neg", "venous", "afterload"}
 
+    # Phase 1: selecting one box
     if st.session_state.phase == "select_box" and clicked in controllables:
         st.session_state.selected_node = clicked
         st.session_state.phase = "choose_dir"
         st.rerun()
 
-    # ---- PHASE: choose_dir (increase/decrease) ----
+    # ---- choose direction ----
     if st.session_state.phase == "choose_dir" and st.session_state.selected_node:
         node = st.session_state.selected_node
 
@@ -276,7 +277,7 @@ with left:
                     st.session_state.phase = "predict"
                     st.rerun()
 
-    # ---- PHASE: predict CO ----
+    # ---- predict CO ----
     if st.session_state.phase == "predict" and st.session_state.selected_node:
         node = st.session_state.selected_node
         _, _, CO_before = compute_state()
@@ -285,11 +286,9 @@ with left:
             @st.dialog("Predict the impact on cardiac output")
             def predict_dialog():
                 st.write("Based on your change, what will happen to CO?")
-                pred = st.radio(
-                    "Your prediction:",
-                    ["Increase", "Decrease", "No change"],
-                    index=None
-                )
+                pred = st.radio("Your prediction:",
+                                ["Increase", "Decrease", "No change"],
+                                index=None)
                 if st.button("Submit prediction"):
                     st.session_state.prediction = pred
 
@@ -304,7 +303,7 @@ with left:
                     eff_key = key_map[node]
                     st.session_state[eff_key] = st.session_state.pending_direction
 
-                    st.session_state.graph_version += 1
+                    st.session_state.graph_version += 1  # redraw graph
 
                     _, _, CO_after = compute_state()
                     dir_CO = expected_direction(CO_before, CO_after)
@@ -316,12 +315,9 @@ with left:
                     st.rerun()
             predict_dialog()
         else:
-            st.write("Predict the impact on CO:")
-            pred = st.radio(
-                "Your prediction:",
-                ["Increase", "Decrease", "No change"],
-                index=None
-            )
+            pred = st.radio("Your prediction:",
+                            ["Increase", "Decrease", "No change"],
+                            index=None)
             if st.button("Submit prediction"):
                 st.session_state.prediction = pred
 
@@ -383,7 +379,7 @@ with right:
             )
 
         if st.button("Start a new round"):
-            # RESET EVERYTHING back to baseline arrows
+            # reset arrows back to baseline
             st.session_state.chrono_pos_effect = 0
             st.session_state.chrono_neg_effect = 0
             st.session_state.ino_pos_effect = 0
@@ -391,10 +387,8 @@ with right:
             st.session_state.venous_return_effect = 0
             st.session_state.afterload_effect = 0
 
-            # bump version so cleared arrows show immediately
             st.session_state.graph_version += 1
 
-            # reset cycle
             st.session_state.phase = "select_box"
             st.session_state.selected_node = None
             st.session_state.pending_direction = None
