@@ -107,7 +107,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-left, right = st.columns([2.1, 1.0], gap="large")
+left, right = st.columns([2.2, 1.0], gap="large")
 
 # ---------------------------
 # Compute downstream arrows
@@ -122,7 +122,7 @@ SV_arrow = effect_arrow(sv_dir)
 CO_arrow = effect_arrow(co_dir)
 
 # ---------------------------
-# LEFT: flow chart (HUGE fonts)
+# LEFT: flow chart
 # ---------------------------
 with left:
     st.markdown("### Flow chart")
@@ -134,45 +134,46 @@ with left:
     vr  = effect_arrow(st.session_state.venous_return_effect)
     al  = effect_arrow(st.session_state.afterload_effect)
 
-    # Fonts bumped by ~100, sizes scaled up to fit text.
+    # Balanced bounding box so fit=True fills the screen & centers.
     nodes = [
+        # Top headers
         Node(id="chrono_header",
-             label="Chronotropic agents\n(alter SA node and\nAV node activity)",
-             x=0,   y=0, size=1900, color="#EFE7E5", shape="box", font={"size": 120}),
+             label="Chronotropic agents\n(alter SA/AV node activity)",
+             x=0,   y=0, size=1000, color="#EFE7E5", shape="box", font={"size": 22}),
 
         Node(id="venous",
              label=f"Venous return\n(preload)\n{vr}",
-             x=280, y=0, size=1750, color="#FFF6C8", shape="box", font={"size": 120}),
+             x=260, y=0, size=960, color="#FFF6C8", shape="box", font={"size": 22}),
 
         Node(id="ino_header",
              label="Inotropic agents\n(alter contractility)",
-             x=560, y=0, size=1900, color="#FFF0EC", shape="box", font={"size": 120}),
+             x=520, y=0, size=1000, color="#FFF0EC", shape="box", font={"size": 22}),
 
         Node(id="afterload",
              label=f"Afterload\n{al}",
-             x=860, y=0, size=1750, color="#E1E8FF", shape="box", font={"size": 120}),
+             x=780, y=0, size=960, color="#E1E8FF", shape="box", font={"size": 22}),
 
+        # Sub-boxes
         Node(id="chrono_pos", label=f"Positive agents\n{cp}",
-             x=-120, y=170, size=1500, color="#FFE8A3", shape="box", font={"size": 118}),
-
+             x=-90,  y=155, size=820, color="#FFE8A3", shape="box", font={"size": 20}),
         Node(id="chrono_neg", label=f"Negative agents\n{cn}",
-             x=120,  y=170, size=1500, color="#FFE8A3", shape="box", font={"size": 118}),
+             x=90,   y=155, size=820, color="#FFE8A3", shape="box", font={"size": 20}),
 
-        # inotropes closer together + left
+        # Inotropes moved slightly inward to avoid afterload line
         Node(id="ino_pos", label=f"Positive agents\n{ip}",
-             x=500, y=170, size=1500, color="#FFD6CC", shape="box", font={"size": 118}),
-
+             x=455,  y=155, size=820, color="#FFD6CC", shape="box", font={"size": 20}),
         Node(id="ino_neg", label=f"Negative agents\n{inn}",
-             x=640, y=170, size=1500, color="#FFD6CC", shape="box", font={"size": 118}),
+             x=585,  y=155, size=820, color="#FFD6CC", shape="box", font={"size": 20}),
 
+        # Physiology
         Node(id="hr", label=f"Heart rate (HR)\n{HR_arrow}",
-             x=0,   y=380, size=2100, color="#FFFFFF", shape="box", font={"size": 122}),
-
+             x=0,   y=330, size=1100, color="#FFFFFF", shape="box", font={"size": 24}),
         Node(id="sv", label=f"Stroke volume (SV)\n{SV_arrow}",
-             x=560, y=380, size=2100, color="#FFFFFF", shape="box", font={"size": 122}),
+             x=520, y=330, size=1100, color="#FFFFFF", shape="box", font={"size": 24}),
 
+        # Output
         Node(id="co", label=f"Cardiac output (CO)\n{CO_arrow}",
-             x=280, y=585, size=2300, color="#F3D6DA", shape="box", font={"size": 122}),
+             x=260, y=520, size=1200, color="#F3D6DA", shape="box", font={"size": 24}),
     ]
 
     # Invisible redraw node
@@ -201,16 +202,16 @@ with left:
 
     config = Config(
         width="100%",
-        height=720,
+        height=820,         # bigger viewport so it fills the page
         directed=True,
         physics=False,
-        staticGraph=True,
+        staticGraph=True,   # lock nodes in place
         nodeHighlightBehavior=True,
-        fit=True,
+        fit=True,           # should now start screen-filling & centered
         interaction={
-            "dragNodes": False,  # can't move boxes
-            "dragView": True,    # can pan
-            "zoomView": True     # can zoom
+            "dragNodes": False,
+            "dragView": True,   # allow pan if they zoom
+            "zoomView": True
         }
     )
 
@@ -299,8 +300,7 @@ with right:
                     }
                     eff_key = key_map[node]
                     st.session_state[eff_key] = st.session_state.pending_direction
-
-                    st.session_state.graph_version += 1
+                    st.session_state.graph_version += 1  # redraw
 
                     _, _, CO_after = compute_state()
                     dir_CO = expected_direction(CO_before, CO_after)
@@ -328,7 +328,6 @@ with right:
                 }
                 eff_key = key_map[node]
                 st.session_state[eff_key] = st.session_state.pending_direction
-
                 st.session_state.graph_version += 1
 
                 _, _, CO_after = compute_state()
@@ -370,6 +369,7 @@ with right:
             )
 
         if st.button("Start a new round"):
+            # reset arrows
             st.session_state.chrono_pos_effect = 0
             st.session_state.chrono_neg_effect = 0
             st.session_state.ino_pos_effect = 0
@@ -378,7 +378,6 @@ with right:
             st.session_state.afterload_effect = 0
 
             st.session_state.graph_version += 1
-
             st.session_state.phase = "select_box"
             st.session_state.selected_node = None
             st.session_state.pending_direction = None
