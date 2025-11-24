@@ -1,11 +1,10 @@
 import streamlit as st
-from streamlit_agraph import agraph, Node, Edge, Config
 
 # ---------------------------
 # Page config + style
 # ---------------------------
 st.set_page_config(
-    page_title="Cardiac Output Flow Explorer",
+    page_title="Cardiac Output Flow Chart",
     page_icon="🫀",
     layout="wide",
 )
@@ -15,27 +14,53 @@ st.markdown(
     <style>
       .big-title { font-size: 2.1rem; font-weight: 800; margin-bottom: 0.25rem; }
       .subtitle { color: #555; font-size: 1.05rem; margin-top: 0; }
-      .tiny { font-size:0.9rem; color:#666; }
-      .node-card {
-        border:1px solid #eee; border-radius:16px; padding:14px 16px;
-        background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+
+      .cell {
+        border: 1px solid #e9e9e9;
+        border-radius: 14px;
+        padding: 14px 14px 10px 14px;
+        background: white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        min-height: 180px;
       }
+      .cell h4 {
+        margin: 0 0 6px 0; font-size: 1.05rem;
+      }
+      .cell .desc {
+        font-size: 0.92rem; color: #666; margin-bottom: 8px; min-height: 36px;
+      }
+      .arrow-big {
+        font-size: 2.0rem; font-weight: 800; text-align:center; margin: 4px 0 8px 0;
+      }
+      .downstream {
+        border: 1px dashed #eee;
+        border-radius: 12px;
+        padding: 10px;
+        background: #fafafa;
+        text-align:center;
+        font-size: 1.05rem;
+        font-weight: 700;
+      }
+
+      .tiny { font-size:0.9rem; color:#666; }
       .good { color: #0a7a2f; font-weight: 700; }
-      .bad { color: #b00020; font-weight: 700; }
+      .bad  { color: #b00020; font-weight: 700; }
+
       .stButton button {
         border-radius: 999px !important;
-        padding: 0.5rem 1rem !important;
+        padding: 0.4rem 0.9rem !important;
+        font-weight: 700 !important;
       }
+      .arrow-buttons .stButton button { width: 100%; }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
 # ---------------------------
-# Helper functions
+# Helpers
 # ---------------------------
 def effect_arrow(effect: int):
-    """effect is -1, 0, +1"""
     return "↑" if effect > 0 else ("↓" if effect < 0 else "—")
 
 def expected_direction(before, after, eps=1e-6):
@@ -45,320 +70,313 @@ def expected_direction(before, after, eps=1e-6):
 
 def compute_state():
     """
-    Discrete teaching model based on arrow choices:
-    - HR baseline adjusted by net chronotropy (pos and neg agents)
-    - SV baseline adjusted by venous return, inotropy, and afterload
-    - CO = HR × SV
-
-    We use step sizes so arrows produce meaningful but simple changes.
+    Discrete arrow-based teaching model.
+    Outputs only direction + hidden numeric internal calc.
     """
     hr0 = st.session_state.hr_baseline
     sv0 = st.session_state.sv_baseline
 
-    # Step sizes per arrow click (tweak if desired)
-    HR_STEP = 0.12   # 12% per arrow unit
-    SV_STEP = 0.12   # 12% per arrow unit
+    HR_STEP = 0.12
+    SV_STEP = 0.12
 
-    # Chronotropy logic:
-    # more positive chrono -> HR up
-    # more negative chrono -> HR down
-    net_chrono = (
-        st.session_state.chrono_pos_effect
-        - st.session_state.chrono_neg_effect
-    )
+    net_chrono = st.session_state.chrono_pos_effect - st.session_state.chrono_neg_effect
+    net_ino    = st.session_state.ino_pos_effect    - st.session_state.ino_neg_effect
+    venous     = st.session_state.venous_return_effect
+    afterload  = st.session_state.afterload_effect
+
     hr = hr0 * (1 + HR_STEP * net_chrono)
-
-    # Inotropy logic (affects SV directly)
-    net_ino = (
-        st.session_state.ino_pos_effect
-        - st.session_state.ino_neg_effect
-    )
-
-    # Venous return increases preload => SV up
-    venous = st.session_state.venous_return_effect
-
-    # Afterload opposes ejection => SV down when ↑
-    afterload = st.session_state.afterload_effect
-
     sv = sv0 * (1 + SV_STEP * (net_ino + venous - afterload))
-
-    # Clamp to keep things sensible for students
     hr = max(30, min(180, hr))
     sv = max(30, min(140, sv))
-
-    co = hr * sv / 1000.0  # ml/min -> L/min
+    co = hr * sv / 1000.0
     return hr, sv, co
 
+def direction_vs_baseline(value, baseline, eps=1e-6):
+    if abs(value - baseline) < eps:
+        return 0
+    return 1 if value > baseline else -1
+
+def control_cell(
+    title,
+    desc,
+    key_effect,
+    confusion_options,
+    links=None,
+):
+    """
+    Renders a squared flow-chart control cell with:
+      - current arrow
+      - prediction radio INSIDE the cell
+      - ↑ / ↓ buttons INSIDE the cell
+      - feedback INSIDE the cell
+    """
+    links = links or []
+
+    # Current state before change
+    HR_before, SV_before, CO_before = compute_state()
+
+    effect = st.session_state[key_effect]
+    arrow_text = effect_arrow(effect)
+
+    st.markdown("<div class='cell'>", unsafe_allow_html=True)
+    st.markdown(f"<h4>{title}</h4>", unsafe_allow_html=True)
+    st.markdown(f"<div class='desc'>{desc}</div>", unsafe_allow_html=True)
+
+    st.markdown(f"<div class='arrow-big'>{arrow_text}</div>", unsafe_allow_html=True)
+
+    pred_key = f"pred_{key_effect}"
+    if pred_key not in st.session_state:
+        st.session_state[pred_key] = None
+
+    st.session_state[pred_key] = st.radio(
+        "Predict CO:",
+        ["Increase", "Decrease", "No change"],
+        index=None if st.session_state[pred_key] is None else ["Increase","Decrease","No change"].index(st.session_state[pred_key]),
+        key=f"radio_{key_effect}",
+        horizontal=True
+    )
+
+    bcol1, bcol2 = st.columns(2)
+    with bcol1:
+        inc = st.button("↑ Increase", key=f"inc_{key_effect}")
+    with bcol2:
+        dec = st.button("↓ Decrease", key=f"dec_{key_effect}")
+
+    if inc or dec:
+        if st.session_state[pred_key] is None:
+            st.warning("Make a prediction first 🙂")
+        else:
+            st.session_state[key_effect] = 1 if inc else -1
+
+            HR_after, SV_after, CO_after = compute_state()
+            direction_CO = expected_direction(CO_before, CO_after)
+            correct = (direction_CO == st.session_state[pred_key])
+
+            st.markdown("**Result:**")
+            st.write(f"CO will **{direction_CO}**.")
+
+            if correct:
+                st.markdown("<div class='good'>✅ Correct prediction!</div>", unsafe_allow_html=True)
+            else:
+                st.markdown("<div class='bad'>❌ Not quite.</div>", unsafe_allow_html=True)
+                confuse = st.selectbox(
+                    "Where did you get confused?",
+                    confusion_options,
+                    index=None,
+                    key=f"conf_{key_effect}"
+                )
+                if confuse:
+                    st.info("Thanks — that point is worth reviewing.")
+
+    if links:
+        with st.expander("Learn more"):
+            for text, url in links:
+                st.markdown(f"- [{text}]({url})")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
 # ---------------------------
-# Initialize / ensure session state defaults
-# (prevents missing-key errors after app updates)
+# Ensure session defaults (no missing-key errors)
 # ---------------------------
 defaults = {
-    # Baselines
     "hr_baseline": 70.0,
     "sv_baseline": 70.0,
 
-    # Discrete effects: -1 (↓), 0 (—), +1 (↑)
     "chrono_pos_effect": 0,
     "chrono_neg_effect": 0,
     "ino_pos_effect": 0,
     "ino_neg_effect": 0,
     "venous_return_effect": 0,
     "afterload_effect": 0,
-
-    # UI memory
-    "show_quiz": False,
-    "quiz_node": None,
-    "prediction": None,
-    "was_correct": None,
-    "confusion_point": None,
 }
-
 for k, v in defaults.items():
     st.session_state.setdefault(k, v)
-
-
-    # Baselines (teacher adjustable)
-    st.session_state.hr_baseline = 70.0
-    st.session_state.sv_baseline = 70.0
-
-    # Discrete effects: -1 (↓), 0 (—), +1 (↑)
-    st.session_state.chrono_pos_effect = 0
-    st.session_state.chrono_neg_effect = 0
-    st.session_state.ino_pos_effect = 0
-    st.session_state.ino_neg_effect = 0
-    st.session_state.venous_return_effect = 0
-    st.session_state.afterload_effect = 0
-
-    # UI memory
-    st.session_state.show_quiz = False
-    st.session_state.quiz_node = None
-    st.session_state.prediction = None
-    st.session_state.was_correct = None
-    st.session_state.confusion_point = None
 
 # ---------------------------
 # Header
 # ---------------------------
 st.markdown("<div class='big-title'>🫀 Cardiac Output Flow Chart</div>", unsafe_allow_html=True)
 st.markdown(
-    "<p class='subtitle'>Click a control box, predict CO, then add ↑ or ↓. Downstream arrows update automatically.</p>",
+    "<p class='subtitle'>Choose ↑ or ↓ inside any box. Downstream arrows update automatically.</p>",
     unsafe_allow_html=True
 )
 
-left, right = st.columns([1.9, 1.0], gap="large")
-
-# Compute values
+# ---------------------------
+# Compute arrows for downstream boxes
+# ---------------------------
 hr, sv, co = compute_state()
-co0 = st.session_state.hr_baseline * st.session_state.sv_baseline / 1000.0
+hr_dir = direction_vs_baseline(hr, st.session_state.hr_baseline)
+sv_dir = direction_vs_baseline(sv, st.session_state.sv_baseline)
+co_dir = direction_vs_baseline(co, (st.session_state.hr_baseline * st.session_state.sv_baseline / 1000.0))
+
+HR_arrow = effect_arrow(hr_dir)
+SV_arrow = effect_arrow(sv_dir)
+CO_arrow = effect_arrow(co_dir)
 
 # ---------------------------
-# LEFT: Fixed-layout flow chart
+# Flow chart layout (squared / aligned)
 # ---------------------------
-with left:
-    st.markdown("### Interactive flow chart")
 
-    # Display arrows in nodes
-    cp = effect_arrow(st.session_state.chrono_pos_effect)
-    cn = effect_arrow(st.session_state.chrono_neg_effect)
-    ip = effect_arrow(st.session_state.ino_pos_effect)
-    inn = effect_arrow(st.session_state.ino_neg_effect)
-    vr = effect_arrow(st.session_state.venous_return_effect)
-    al = effect_arrow(st.session_state.afterload_effect)
+# Row 1: four equal "agent" boxes, pos/neg aligned
+r1c1, r1c2, r1c3, r1c4 = st.columns(4, gap="large")
 
-    # Fixed positions (grid-like)
-    nodes = [
-        # Top row controls
-        Node(id="chrono_pos", label=f"Positive chronotropic agents\n{cp}", x=0,   y=0,   size=720, color="#FFE8A3", shape="box"),
-        Node(id="venous",     label=f"Venous return (preload)\n{vr}", x=300, y=0,   size=720, color="#FFF6C8", shape="box"),
-        Node(id="ino_pos",    label=f"Positive inotropic agents\n{ip}", x=600, y=0,   size=720, color="#FFD6CC", shape="box"),
-        Node(id="afterload",  label=f"Afterload\n{al}", x=900, y=0,   size=720, color="#E1E8FF", shape="box"),
-
-        # Second row sub-controls
-        Node(id="chrono_neg", label=f"Negative chronotropic agents\n{cn}", x=0,   y=140, size=680, color="#FFE8A3", shape="box"),
-        Node(id="ino_neg",    label=f"Negative inotropic agents\n{inn}", x=600, y=140, size=680, color="#FFD6CC", shape="box"),
-
-        # Physiology row
-        Node(id="hr", label=f"Heart rate (HR)\n{hr:.0f} bpm", x=90,  y=320, size=900, color="#FFFFFF", shape="box"),
-        Node(id="sv", label=f"Stroke volume (SV)\n{sv:.0f} ml/beat", x=690, y=320, size=900, color="#FFFFFF", shape="box"),
-
-        # Output
-        Node(id="co", label=f"Cardiac output (CO)\n{co:.2f} L/min", x=390, y=520, size=1050, color="#F3D6DA", shape="box"),
-    ]
-
-    edges = [
-        Edge(source="chrono_pos", target="hr", label="direct +"),
-        Edge(source="chrono_neg", target="hr", label="direct −"),
-        Edge(source="venous", target="sv", label="direct +"),
-        Edge(source="ino_pos", target="sv", label="direct +"),
-        Edge(source="ino_neg", target="sv", label="direct −"),
-        Edge(source="afterload", target="sv", label="inverse −"),
-        Edge(source="hr", target="co", label="CO = HR × SV"),
-        Edge(source="sv", target="co", label="CO = HR × SV"),
-    ]
-
-    config = Config(
-        width="100%",
-        height=560,
-        directed=True,
-        physics=False,
-        nodeHighlightBehavior=True,
-        staticGraph=True,   # keep layout squared/locked
-        fit=True
+with r1c1:
+    control_cell(
+        title="Positive chronotropic agents",
+        desc="Increase SA/AV node activity.",
+        key_effect="chrono_pos_effect",
+        confusion_options=[
+            "How positive chronotropes affect HR",
+            "How HR affects CO",
+            "How SV affects CO",
+            "Not sure / other"
+        ],
+        links=[
+            ("Cleveland Clinic: Cardiac output basics", "https://my.clevelandclinic.org/health/articles/17076-cardiac-output"),
+            ("CDC: Heart failure overview", "https://www.cdc.gov/heartfailure/index.htm"),
+        ],
     )
 
-    clicked = agraph(nodes=nodes, edges=edges, config=config)
+with r1c2:
+    control_cell(
+        title="Negative chronotropic agents",
+        desc="Decrease SA/AV node activity.",
+        key_effect="chrono_neg_effect",
+        confusion_options=[
+            "How negative chronotropes affect HR",
+            "How HR affects CO",
+            "How SV affects CO",
+            "Not sure / other"
+        ],
+        links=[
+            ("Cleveland Clinic: Heart rate & physiology", "https://my.clevelandclinic.org/health/articles/17076-cardiac-output"),
+            ("CDC: Heart failure overview", "https://www.cdc.gov/heartfailure/index.htm"),
+        ],
+    )
 
-    controllables = {
-        "chrono_pos", "chrono_neg",
-        "ino_pos", "ino_neg",
-        "venous", "afterload"
-    }
+with r1c3:
+    control_cell(
+        title="Positive inotropic agents",
+        desc="Increase myocardial contractility.",
+        key_effect="ino_pos_effect",
+        confusion_options=[
+            "How positive inotropes affect SV",
+            "How SV affects CO",
+            "Not sure / other"
+        ],
+        links=[
+            ("Cleveland Clinic: Inotropes", "https://my.clevelandclinic.org/health/drugs/22633-inotropes"),
+            ("CDC: Heart failure overview", "https://www.cdc.gov/heartfailure/index.htm"),
+        ],
+    )
 
-    if clicked in controllables:
-        st.session_state.show_quiz = True
-        st.session_state.quiz_node = clicked
-        st.session_state.prediction = None
-        st.session_state.was_correct = None
-        st.session_state.confusion_point = None
+with r1c4:
+    control_cell(
+        title="Negative inotropic agents",
+        desc="Decrease myocardial contractility.",
+        key_effect="ino_neg_effect",
+        confusion_options=[
+            "How negative inotropes affect SV",
+            "How SV affects CO",
+            "Not sure / other"
+        ],
+        links=[
+            ("Cleveland Clinic: Inotropes", "https://my.clevelandclinic.org/health/drugs/22633-inotropes"),
+            ("CDC: Heart failure overview", "https://www.cdc.gov/heartfailure/index.htm"),
+        ],
+    )
 
-# ---------------------------
-# RIGHT: Quiz + controls
-# ---------------------------
-with right:
-    st.markdown("### Your panel")
+st.write("")  # spacing
 
+# Row 2: venous return + afterload aligned equally
+r2c1, r2c2 = st.columns(2, gap="large")
+with r2c1:
+    control_cell(
+        title="Venous return (preload)",
+        desc="More blood returning → more stretch → higher SV.",
+        key_effect="venous_return_effect",
+        confusion_options=[
+            "Frank–Starling / preload → SV",
+            "How SV affects CO",
+            "Not sure / other"
+        ],
+        links=[
+            ("OpenStax A&P: Stroke volume/preload", "https://openstax.org/books/anatomy-and-physiology/pages/19-4-cardiac-physiology"),
+            ("CDC: Heart failure overview", "https://www.cdc.gov/heartfailure/index.htm"),
+        ],
+    )
+
+with r2c2:
+    control_cell(
+        title="Afterload",
+        desc="Higher arterial resistance makes ejection harder → lower SV.",
+        key_effect="afterload_effect",
+        confusion_options=[
+            "Afterload → SV (inverse)",
+            "How SV affects CO",
+            "Not sure / other"
+        ],
+        links=[
+            ("OpenStax A&P: Afterload", "https://openstax.org/books/anatomy-and-physiology/pages/19-4-cardiac-physiology"),
+            ("CDC: Heart failure overview", "https://www.cdc.gov/heartfailure/index.htm"),
+        ],
+    )
+
+st.write("")
+
+# Row 3: downstream physiology (auto-filled arrows)
+r3c1, r3c2 = st.columns(2, gap="large")
+with r3c1:
     st.markdown(
         f"""
-        <div class="node-card">
-          <div><b>HR:</b> {hr:.0f} bpm</div>
-          <div><b>SV:</b> {sv:.0f} ml/beat</div>
-          <div><b>CO:</b> {co:.2f} L/min</div>
-          <div class="tiny" style="margin-top:6px;">
-            Baseline CO ≈ {co0:.2f} L/min
-          </div>
+        <div class="cell">
+          <h4>Heart rate (HR)</h4>
+          <div class="desc">Beats per minute.</div>
+          <div class="arrow-big">{HR_arrow}</div>
         </div>
         """,
         unsafe_allow_html=True
     )
 
-    st.write("")
+with r3c2:
+    st.markdown(
+        f"""
+        <div class="cell">
+          <h4>Stroke volume (SV)</h4>
+          <div class="desc">Blood pumped per beat.</div>
+          <div class="arrow-big">{SV_arrow}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
-    if st.session_state.show_quiz and st.session_state.quiz_node:
-        node = st.session_state.quiz_node
-        HR_before, SV_before, CO_before = compute_state()
+st.write("")
 
-        st.markdown("#### Step 1 — Predict first")
-        st.session_state.prediction = st.radio(
-            "What do you think will happen to Cardiac Output?",
-            ["Increase", "Decrease", "No change"],
-            index=None
-        )
+# Row 4: cardiac output (auto-filled arrow)
+st.markdown(
+    f"""
+    <div class="cell" style="max-width:520px; margin:auto;">
+      <h4>Cardiac output (CO)</h4>
+      <div class="desc">Blood pumped per minute.</div>
+      <div class="arrow-big">{CO_arrow}</div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
-        st.markdown("#### Step 2 — Add an arrow to this box")
-
-        col1, col2 = st.columns(2)
-        with col1:
-            inc = st.button("Add ↑", use_container_width=True)
-        with col2:
-            dec = st.button("Add ↓", use_container_width=True)
-
-        # Map each controllable node to its session key
-        key_map = {
-            "chrono_pos": "chrono_pos_effect",
-            "chrono_neg": "chrono_neg_effect",
-            "ino_pos": "ino_pos_effect",
-            "ino_neg": "ino_neg_effect",
-            "venous": "venous_return_effect",
-            "afterload": "afterload_effect",
-        }
-
-        if inc or dec:
-            if st.session_state.prediction is None:
-                st.warning("Please make a prediction before adding an arrow 🙂")
-            else:
-                eff_key = key_map[node]
-                old_eff = st.session_state[eff_key]
-                st.session_state[eff_key] = 1 if inc else -1
-
-                HR_after, SV_after, CO_after = compute_state()
-                direction_CO = expected_direction(CO_before, CO_after)
-
-                st.session_state.was_correct = (direction_CO == st.session_state.prediction)
-
-                st.success(
-                    f"Arrow updated: {effect_arrow(old_eff)} → {effect_arrow(st.session_state[eff_key])}"
-                )
-
-                st.markdown("#### Results")
-                st.write(f"- HR: {HR_before:.0f} → {HR_after:.0f} bpm")
-                st.write(f"- SV: {SV_before:.0f} → {SV_after:.0f} ml/beat")
-                st.write(f"- CO: {CO_before:.2f} → {CO_after:.2f} L/min (**{direction_CO}**)")
-
-                if st.session_state.was_correct:
-                    st.markdown("<div class='good'>✅ Your prediction was correct!</div>", unsafe_allow_html=True)
-                else:
-                    st.markdown("<div class='bad'>❌ Not quite — let’s find the snag.</div>", unsafe_allow_html=True)
-                    st.session_state.confusion_point = st.selectbox(
-                        "Where do you think your reasoning went off?",
-                        [
-                            "Effects of positive chronotropic agents",
-                            "Effects of negative chronotropic agents",
-                            "Effects of positive inotropic agents",
-                            "Effects of negative inotropic agents",
-                            "How venous return affects preload/SV",
-                            "How afterload affects SV",
-                            "How HR and SV combine to make CO",
-                            "Something else / not sure"
-                        ],
-                        index=None
-                    )
-                    if st.session_state.confusion_point:
-                        st.info("Thanks — that’s a great place to re-check your reasoning.")
-
-        st.divider()
-
-        st.markdown("#### Learn more about this step")
-        if node in {"chrono_pos", "chrono_neg"}:
-            st.write("Chronotropic agents alter **SA/AV node activity**, changing **heart rate**.")
-            st.markdown("- Cleveland Clinic: Cardiac output basics (CO = HR × SV).")
-        elif node in {"ino_pos", "ino_neg"}:
-            st.write("Inotropic agents change **contractility**, affecting **stroke volume**.")
-            st.markdown("- Cleveland Clinic: Inotropes and contractility.")
-        elif node == "venous":
-            st.write("Venous return increases preload → more stretch → higher SV (Frank–Starling).")
-            st.markdown("- OpenStax A&P: Stroke volume and preload.")
-        elif node == "afterload":
-            st.write("Afterload opposes ejection → increased afterload lowers SV.")
-            st.markdown("- OpenStax A&P: Afterload and SV.")
-        st.markdown("- CDC: Heart failure overview and reduced pumping ability.")
-
-    else:
-        st.info("Click any yellow control box to start (top row).")
-
-    st.write("")
-    st.markdown("### Teacher controls (optional)")
-    with st.expander("Adjust baselines"):
-        st.session_state.hr_baseline = st.slider(
-            "Baseline HR (bpm)", 40, 120, int(st.session_state.hr_baseline)
-        )
-        st.session_state.sv_baseline = st.slider(
-            "Baseline SV (ml/beat)", 40, 120, int(st.session_state.sv_baseline)
-        )
-
-    with st.expander("Reset activity"):
-        if st.button("Reset all arrows to — (baseline)"):
-            st.session_state.chrono_pos_effect = 0
-            st.session_state.chrono_neg_effect = 0
-            st.session_state.ino_pos_effect = 0
-            st.session_state.ino_neg_effect = 0
-            st.session_state.venous_return_effect = 0
-            st.session_state.afterload_effect = 0
-            st.session_state.show_quiz = False
-            st.session_state.quiz_node = None
-            st.experimental_rerun()
+st.write("")
+with st.expander("Teacher controls (optional)"):
+    st.session_state.hr_baseline = st.slider("Baseline HR (hidden from students)", 40, 120, int(st.session_state.hr_baseline))
+    st.session_state.sv_baseline = st.slider("Baseline SV (hidden from students)", 40, 120, int(st.session_state.sv_baseline))
+    if st.button("Reset all arrows to baseline (—)"):
+        st.session_state.chrono_pos_effect = 0
+        st.session_state.chrono_neg_effect = 0
+        st.session_state.ino_pos_effect = 0
+        st.session_state.ino_neg_effect = 0
+        st.session_state.venous_return_effect = 0
+        st.session_state.afterload_effect = 0
+        st.rerun()
 
 st.caption(
-    "Note: This is a simplified causal model for learning. Real physiology includes reflexes, "
-    "filling-time limits at high HR, vascular tone changes, and disease states."
+    "Simplified learning model: CO = HR × SV. Arrows represent direction of change only."
 )
