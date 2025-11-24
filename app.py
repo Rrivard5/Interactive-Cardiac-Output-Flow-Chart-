@@ -90,9 +90,6 @@ def compute_state():
     return hr, sv, co
 
 # ---------------------------
-# Initialize session state
-# ---------------------------
-# ---------------------------
 # Initialize / ensure session state defaults
 # (prevents missing-key errors after app updates)
 # ---------------------------
