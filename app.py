@@ -143,42 +143,49 @@ with left:
     vr = effect_arrow(st.session_state.venous_return_effect)
     al = effect_arrow(st.session_state.afterload_effect)
 
+    # TIGHTER GRID (less horizontal spread)
+    # x range ~ 0..780 instead of 0..1080
     nodes = [
         # Top big headers
-        Node(id="chrono_header", label="Chronotropic agents\n(alter SA node and\nAV node activity)", x=0, y=0,
-             size=900, color="#EFE7E5", shape="box", font={"size": 16}),
-        Node(id="venous", label=f"Venous return\n(volume of blood returning\nto heart alters stretch\nor preload)\n{vr}", x=360, y=0,
-             size=900, color="#FFF6C8", shape="box", font={"size": 16}),
-        Node(id="ino_header", label="Inotropic agents\n(substances that alter\ncontractility of myocardium)", x=720, y=0,
-             size=900, color="#FFF0EC", shape="box", font={"size": 16}),
-        Node(id="afterload", label=f"Afterload\n(increased resistance\nin arteries)\n{al}", x=1080, y=0,
-             size=900, color="#E1E8FF", shape="box", font={"size": 16}),
+        Node(id="chrono_header",
+             label="Chronotropic agents\n(alter SA node and\nAV node activity)",
+             x=0, y=0, size=960, color="#EFE7E5", shape="box", font={"size": 18}),
+
+        Node(id="venous",
+             label=f"Venous return\n(preload)\n{vr}",
+             x=260, y=0, size=900, color="#FFF6C8", shape="box", font={"size": 18}),
+
+        Node(id="ino_header",
+             label="Inotropic agents\n(alter contractility)",
+             x=520, y=0, size=960, color="#FFF0EC", shape="box", font={"size": 18}),
+
+        Node(id="afterload",
+             label=f"Afterload\n{al}",
+             x=780, y=0, size=900, color="#E1E8FF", shape="box", font={"size": 18}),
 
         # Sub-boxes under chrono/inotropy
-        Node(id="chrono_pos", label=f"Positive agents\n{cp}", x=-120, y=170,
-             size=650, color="#FFE8A3", shape="box", font={"size": 15}),
-        Node(id="chrono_neg", label=f"Negative agents\n{cn}", x=120, y=170,
-             size=650, color="#FFE8A3", shape="box", font={"size": 15}),
+        Node(id="chrono_pos", label=f"Positive agents\n{cp}",
+             x=-90, y=170, size=680, color="#FFE8A3", shape="box", font={"size": 16}),
+        Node(id="chrono_neg", label=f"Negative agents\n{cn}",
+             x=90, y=170, size=680, color="#FFE8A3", shape="box", font={"size": 16}),
 
-        Node(id="ino_pos", label=f"Positive agents\n{ip}", x=600, y=170,
-             size=650, color="#FFD6CC", shape="box", font={"size": 15}),
-        Node(id="ino_neg", label=f"Negative agents\n{inn}", x=840, y=170,
-             size=650, color="#FFD6CC", shape="box", font={"size": 15}),
+        Node(id="ino_pos", label=f"Positive agents\n{ip}",
+             x=430, y=170, size=680, color="#FFD6CC", shape="box", font={"size": 16}),
+        Node(id="ino_neg", label=f"Negative agents\n{inn}",
+             x=610, y=170, size=680, color="#FFD6CC", shape="box", font={"size": 16}),
 
         # Middle physiology
-        Node(id="hr", label=f"Heart rate (beats per minute)\n{HR_arrow}", x=0, y=380,
-             size=950, color="#FFFFFF", shape="box", font={"size": 18}),
-        Node(id="sv", label=f"Stroke volume (blood pumped per beat)\n{SV_arrow}", x=720, y=380,
-             size=950, color="#FFFFFF", shape="box", font={"size": 18}),
+        Node(id="hr", label=f"Heart rate (HR)\n{HR_arrow}",
+             x=0, y=390, size=1020, color="#FFFFFF", shape="box", font={"size": 20}),
+        Node(id="sv", label=f"Stroke volume (SV)\n{SV_arrow}",
+             x=520, y=390, size=1020, color="#FFFFFF", shape="box", font={"size": 20}),
 
         # Bottom output
-        Node(id="co", label=f"Cardiac output (blood pumped per minute)\n{CO_arrow}", x=360, y=590,
-             size=1050, color="#F3D6DA", shape="box", font={"size": 18}),
+        Node(id="co", label=f"Cardiac output (CO)\n{CO_arrow}",
+             x=260, y=600, size=1120, color="#F3D6DA", shape="box", font={"size": 20}),
     ]
 
-    # ---- NEW: invisible force-redraw node ----
-    # Its ID changes every time graph_version changes,
-    # which forces streamlit-agraph to re-render.
+    # Invisible force-redraw node (ID changes each round)
     nodes.append(
         Node(
             id=f"_force_{st.session_state.graph_version}",
@@ -204,15 +211,14 @@ with left:
 
     config = Config(
         width="100%",
-        height=640,
+        height=700,         # bigger viewport
         directed=True,
         physics=False,
         staticGraph=True,
         nodeHighlightBehavior=True,
-        fit=True
+        fit=False           # IMPORTANT: don't auto-zoom-to-fit
     )
 
-    # IMPORTANT: no key= here (agraph doesn't accept it)
     clicked = agraph(nodes=nodes, edges=edges, config=config)
 
     controllables = {"chrono_pos", "chrono_neg", "ino_pos", "ino_neg", "venous", "afterload"}
@@ -343,20 +349,28 @@ with left:
                 st.session_state.phase = "show_result"
                 st.rerun()
 
-    # ---- PHASE: show_result ----
+# ---------------------------
+# RIGHT: results + next-round
+# ---------------------------
+with right:
+    st.markdown("### Student step")
+
     if st.session_state.phase == "show_result":
+        # Always show correct answer AND their prediction
         st.markdown(
             f"""
             <div class="node-card">
-              <div><b>Actual CO change:</b> {st.session_state.last_feedback}</div>
+              <div><b>Your prediction:</b> {st.session_state.prediction}</div>
+              <div><b>Correct CO change:</b> {st.session_state.last_feedback}</div>
             </div>
             """,
             unsafe_allow_html=True
         )
+
         if st.session_state.last_correct:
             st.markdown("<div class='good'>✅ Your prediction was correct!</div>", unsafe_allow_html=True)
         else:
-            st.markdown("<div class='bad'>❌ Not quite.</div>", unsafe_allow_html=True)
+            st.markdown("<div class='bad'>❌ Your prediction was not correct.</div>", unsafe_allow_html=True)
             st.write("Where did you get confused?")
             st.selectbox(
                 "Pick the step:",
@@ -377,7 +391,8 @@ with left:
             st.session_state.pending_direction = None
             st.session_state.prediction = None
             st.rerun()
-
-    st.divider()
+    else:
+        st.info("Click a box in the flow chart to begin.")
 
 st.caption("Arrows show direction of change only. CO = HR × SV (simplified learning model).")
+
