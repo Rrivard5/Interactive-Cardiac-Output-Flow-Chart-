@@ -139,51 +139,50 @@ with left:
     vr  = effect_arrow(st.session_state.venous_return_effect)
     al  = effect_arrow(st.session_state.afterload_effect)
 
-    # Coordinates tuned for readable default fit
+    # BIGGER nodes + TIGHTER coordinate box
+    # so fit=True starts zoomed in.
     nodes = [
-        # Top headers (moderate spread so fit=True zooms in nicely)
+        # Top headers (tight X-range ~ -120..860)
         Node(id="chrono_header",
              label="Chronotropic agents\n(alter SA node and\nAV node activity)",
-             x=0,   y=0, size=1000, color="#EFE7E5", shape="box", font={"size": 18}),
+             x=0,   y=0, size=1200, color="#EFE7E5", shape="box", font={"size": 20}),
 
         Node(id="venous",
              label=f"Venous return\n(preload)\n{vr}",
-             x=320, y=0, size=940, color="#FFF6C8", shape="box", font={"size": 18}),
+             x=280, y=0, size=1100, color="#FFF6C8", shape="box", font={"size": 20}),
 
         Node(id="ino_header",
              label="Inotropic agents\n(alter contractility)",
-             x=640, y=0, size=1000, color="#FFF0EC", shape="box", font={"size": 18}),
+             x=560, y=0, size=1200, color="#FFF0EC", shape="box", font={"size": 20}),
 
-        # Afterload slightly farther right to keep its line clear
         Node(id="afterload",
              label=f"Afterload\n{al}",
-             x=1020, y=0, size=940, color="#E1E8FF", shape="box", font={"size": 18}),
+             x=860, y=0, size=1100, color="#E1E8FF", shape="box", font={"size": 20}),
 
-        # Sub-boxes under chrono/inotropy
+        # Sub-boxes
         Node(id="chrono_pos", label=f"Positive agents\n{cp}",
-             x=-140, y=160, size=720, color="#FFE8A3", shape="box", font={"size": 16}),
+             x=-120, y=170, size=900, color="#FFE8A3", shape="box", font={"size": 18}),
         Node(id="chrono_neg", label=f"Negative agents\n{cn}",
-             x=140,  y=160, size=720, color="#FFE8A3", shape="box", font={"size": 16}),
+             x=120,  y=170, size=900, color="#FFE8A3", shape="box", font={"size": 18}),
 
-        # Inotropic agents moved closer together and left
+        # Inotropic boxes closer together + left (avoid afterload line)
         Node(id="ino_pos", label=f"Positive agents\n{ip}",
-             x=560, y=160, size=720, color="#FFD6CC", shape="box", font={"size": 16}),
+             x=500, y=170, size=900, color="#FFD6CC", shape="box", font={"size": 18}),
         Node(id="ino_neg", label=f"Negative agents\n{inn}",
-             x=720, y=160, size=720, color="#FFD6CC", shape="box", font={"size": 16}),
+             x=640, y=170, size=900, color="#FFD6CC", shape="box", font={"size": 18}),
 
         # Physiology row
         Node(id="hr", label=f"Heart rate (HR)\n{HR_arrow}",
-             x=0,   y=360, size=1080, color="#FFFFFF", shape="box", font={"size": 20}),
-
+             x=0,   y=380, size=1300, color="#FFFFFF", shape="box", font={"size": 22}),
         Node(id="sv", label=f"Stroke volume (SV)\n{SV_arrow}",
-             x=640, y=360, size=1080, color="#FFFFFF", shape="box", font={"size": 20}),
+             x=560, y=380, size=1300, color="#FFFFFF", shape="box", font={"size": 22}),
 
         # Output
         Node(id="co", label=f"Cardiac output (CO)\n{CO_arrow}",
-             x=320, y=560, size=1180, color="#F3D6DA", shape="box", font={"size": 20}),
+             x=280, y=585, size=1400, color="#F3D6DA", shape="box", font={"size": 22}),
     ]
 
-    # Invisible redraw node
+    # Invisible redraw node (keeps your refresh behavior)
     nodes.append(
         Node(
             id=f"_force_{st.session_state.graph_version}",
@@ -203,24 +202,23 @@ with left:
         Edge(source="ino_pos", target="sv"),
         Edge(source="ino_neg", target="sv"),
         Edge(source="afterload", target="sv"),
-
         Edge(source="hr", target="co"),
         Edge(source="sv", target="co"),
     ]
 
     config = Config(
         width="100%",
-        height=700,
+        height=720,
         directed=True,
         physics=False,
-        staticGraph=True,   # no node dragging
+        staticGraph=True,  # locks nodes
         nodeHighlightBehavior=True,
-        fit=True,           # readable default zoom
+        fit=True,          # STARTS zoomed in on this tight box
 
-        # Students CAN zoom, but cannot drag nodes or pan the view
+        # allow students to PAN + ZOOM view, but not drag nodes
         interaction={
             "dragNodes": False,
-            "dragView": False,
+            "dragView": True,   # <-- key fix for zooming off-page
             "zoomView": True
         }
     )
@@ -229,122 +227,14 @@ with left:
 
     controllables = {"chrono_pos", "chrono_neg", "ino_pos", "ino_neg", "venous", "afterload"}
 
-    # Phase 1: selecting one box
     if st.session_state.phase == "select_box" and clicked in controllables:
         st.session_state.selected_node = clicked
         st.session_state.phase = "choose_dir"
         st.rerun()
 
-    # ---- choose direction ----
-    if st.session_state.phase == "choose_dir" and st.session_state.selected_node:
-        node = st.session_state.selected_node
-        title_map = {
-            "chrono_pos": "Positive chronotropic agents",
-            "chrono_neg": "Negative chronotropic agents",
-            "ino_pos": "Positive inotropic agents",
-            "ino_neg": "Negative inotropic agents",
-            "venous": "Venous return (preload)",
-            "afterload": "Afterload",
-        }
-        node_title = title_map[node]
+    # ---- keep the rest of your choose_dir + predict logic unchanged below ----
+    # (paste your existing choose_dir/predict blocks here)
 
-        if have_dialog():
-            @st.dialog(f"{node_title}: choose a direction")
-            def choose_dir_dialog():
-                st.write("Do you want to increase or decrease this factor?")
-                c1, c2 = st.columns(2)
-                with c1:
-                    if st.button("Increase ↑", use_container_width=True):
-                        st.session_state.pending_direction = 1
-                        st.session_state.phase = "predict"
-                        st.rerun()
-                with c2:
-                    if st.button("Decrease ↓", use_container_width=True):
-                        st.session_state.pending_direction = -1
-                        st.session_state.phase = "predict"
-                        st.rerun()
-                st.caption("You can only change one box per round.")
-            choose_dir_dialog()
-        else:
-            st.markdown(f"**{node_title}**")
-            st.write("Increase or decrease this factor?")
-            c1, c2 = st.columns(2)
-            with c1:
-                if st.button("Increase ↑", use_container_width=True):
-                    st.session_state.pending_direction = 1
-                    st.session_state.phase = "predict"
-                    st.rerun()
-            with c2:
-                if st.button("Decrease ↓", use_container_width=True):
-                    st.session_state.pending_direction = -1
-                    st.session_state.phase = "predict"
-                    st.rerun()
-
-    # ---- predict CO ----
-    if st.session_state.phase == "predict" and st.session_state.selected_node:
-        node = st.session_state.selected_node
-        _, _, CO_before = compute_state()
-
-        if have_dialog():
-            @st.dialog("Predict the impact on cardiac output")
-            def predict_dialog():
-                st.write("Based on your change, what will happen to CO?")
-                pred = st.radio("Your prediction:",
-                                ["Increase", "Decrease", "No change"],
-                                index=None)
-                if st.button("Submit prediction"):
-                    st.session_state.prediction = pred
-
-                    key_map = {
-                        "chrono_pos": "chrono_pos_effect",
-                        "chrono_neg": "chrono_neg_effect",
-                        "ino_pos": "ino_pos_effect",
-                        "ino_neg": "ino_neg_effect",
-                        "venous": "venous_return_effect",
-                        "afterload": "afterload_effect",
-                    }
-                    eff_key = key_map[node]
-                    st.session_state[eff_key] = st.session_state.pending_direction
-
-                    st.session_state.graph_version += 1  # redraw graph
-
-                    _, _, CO_after = compute_state()
-                    dir_CO = expected_direction(CO_before, CO_after)
-                    correct = (dir_CO == pred)
-
-                    st.session_state.last_feedback = dir_CO
-                    st.session_state.last_correct = correct
-                    st.session_state.phase = "show_result"
-                    st.rerun()
-            predict_dialog()
-        else:
-            pred = st.radio("Your prediction:",
-                            ["Increase", "Decrease", "No change"],
-                            index=None)
-            if st.button("Submit prediction"):
-                st.session_state.prediction = pred
-
-                key_map = {
-                    "chrono_pos": "chrono_pos_effect",
-                    "chrono_neg": "chrono_neg_effect",
-                    "ino_pos": "ino_pos_effect",
-                    "ino_neg": "ino_neg_effect",
-                    "venous": "venous_return_effect",
-                    "afterload": "afterload_effect",
-                }
-                eff_key = key_map[node]
-                st.session_state[eff_key] = st.session_state.pending_direction
-
-                st.session_state.graph_version += 1
-
-                _, _, CO_after = compute_state()
-                dir_CO = expected_direction(CO_before, CO_after)
-                correct = (dir_CO == pred)
-
-                st.session_state.last_feedback = dir_CO
-                st.session_state.last_correct = correct
-                st.session_state.phase = "show_result"
-                st.rerun()
 
 # ---------------------------
 # RIGHT: results + next-round
