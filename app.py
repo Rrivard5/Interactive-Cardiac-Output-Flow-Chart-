@@ -135,7 +135,8 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-left, right = st.columns([2.3, 1.0], gap="large")
+# Single column layout - no sidebar
+left = st.container()
 
 # ---------------------------
 # Compute downstream arrows
@@ -244,6 +245,173 @@ if st.session_state.phase == "select_box" and clicked in controllables:
     st.session_state.selected_node = clicked
     st.session_state.phase = "choose_dir"
     st.rerun()
+
+# ---- PHASE: choose_dir ----
+if st.session_state.phase == "choose_dir" and st.session_state.selected_node:
+    node = st.session_state.selected_node
+    title_map = {
+        "chrono_pos": "Positive chronotropic agents",
+        "chrono_neg": "Negative chronotropic agents",
+        "ino_pos": "Positive inotropic agents",
+        "ino_neg": "Negative inotropic agents",
+        "venous": "Venous return (preload)",
+        "afterload": "Afterload",
+    }
+    node_title = title_map[node]
+
+    if have_dialog():
+        @st.dialog(f"📍 {node_title}")
+        def choose_dir_dialog():
+            st.write("**Do you want to increase or decrease this factor?**")
+            st.write("")
+            c1, c2 = st.columns(2)
+            with c1:
+                if st.button("⬆️ Increase", use_container_width=True, type="primary"):
+                    st.session_state.pending_direction = 1
+                    st.session_state.phase = "predict"
+                    st.rerun()
+            with c2:
+                if st.button("⬇️ Decrease", use_container_width=True):
+                    st.session_state.pending_direction = -1
+                    st.session_state.phase = "predict"
+                    st.rerun()
+        choose_dir_dialog()
+    else:
+        st.markdown(f"**📍 {node_title}**")
+        st.write("Do you want to increase or decrease this factor?")
+        st.write("")
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("⬆️ Increase", use_container_width=True, type="primary"):
+                st.session_state.pending_direction = 1
+                st.session_state.phase = "predict"
+                st.rerun()
+        with c2:
+            if st.button("⬇️ Decrease", use_container_width=True):
+                st.session_state.pending_direction = -1
+                st.session_state.phase = "predict"
+                st.rerun()
+
+# ---- PHASE: predict ----
+if st.session_state.phase == "predict" and st.session_state.selected_node:
+    node = st.session_state.selected_node
+    _, _, CO_before = compute_state()
+
+    if have_dialog():
+        @st.dialog("🔮 Predict the impact on cardiac output")
+        def predict_dialog():
+            st.write("**What will happen to cardiac output?**")
+            st.write("")
+            pred = st.radio("Your prediction:",
+                            ["Increase", "Decrease", "No change"],
+                            index=None)
+            st.write("")
+            if st.button("✅ Submit prediction", type="primary", disabled=(pred is None)):
+                st.session_state.prediction = pred
+
+                key_map = {
+                    "chrono_pos": "chrono_pos_effect",
+                    "chrono_neg": "chrono_neg_effect",
+                    "ino_pos": "ino_pos_effect",
+                    "ino_neg": "ino_neg_effect",
+                    "venous": "venous_return_effect",
+                    "afterload": "afterload_effect",
+                }
+                eff_key = key_map[node]
+                st.session_state[eff_key] = st.session_state.pending_direction
+
+                st.session_state.graph_version += 1
+
+                _, _, CO_after = compute_state()
+                dir_CO = expected_direction(CO_before, CO_after)
+                correct = (dir_CO == pred)
+
+                st.session_state.last_feedback = dir_CO
+                st.session_state.last_correct = correct
+                st.session_state.phase = "show_result"
+                st.rerun()
+        predict_dialog()
+    else:
+        st.write("**🔮 What will happen to cardiac output?**")
+        st.write("")
+        pred = st.radio("Your prediction:",
+                        ["Increase", "Decrease", "No change"],
+                        index=None)
+        st.write("")
+        if st.button("✅ Submit prediction", type="primary", disabled=(pred is None)):
+            st.session_state.prediction = pred
+            key_map = {
+                "chrono_pos": "chrono_pos_effect",
+                "chrono_neg": "chrono_neg_effect",
+                "ino_pos": "ino_pos_effect",
+                "ino_neg": "ino_neg_effect",
+                "venous": "venous_return_effect",
+                "afterload": "afterload_effect",
+            }
+            eff_key = key_map[node]
+            st.session_state[eff_key] = st.session_state.pending_direction
+
+            st.session_state.graph_version += 1
+
+            _, _, CO_after = compute_state()
+            dir_CO = expected_direction(CO_before, CO_after)
+            correct = (dir_CO == pred)
+
+            st.session_state.last_feedback = dir_CO
+            st.session_state.last_correct = correct
+            st.session_state.phase = "show_result"
+            st.rerun()
+
+# ---- PHASE: show_result ----
+if st.session_state.phase == "show_result":
+    st.markdown(
+        f"""
+        <div class="node-card">
+          <div style="margin-bottom: 10px;"><b>Your prediction:</b> {st.session_state.prediction}</div>
+          <div><b>Correct CO change:</b> {st.session_state.last_feedback}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    if st.session_state.last_correct:
+        st.markdown("<div class='good'>✅ Your prediction was correct!</div>", unsafe_allow_html=True)
+    else:
+        st.markdown("<div class='bad'>❌ Your prediction was not correct.</div>", unsafe_allow_html=True)
+        st.write("")
+        st.selectbox(
+            "Where did you get confused?",
+            [
+                "Chronotropic agents → HR",
+                "Inotropic agents → SV",
+                "Venous return (preload) → SV",
+                "Afterload → SV (inverse)",
+                "Combining HR and SV to get CO",
+                "Not sure / other"
+            ],
+            index=None
+        )
+
+    st.write("")
+    if st.button("🔄 Start a new round", type="primary", use_container_width=True):
+        # reset arrows
+        st.session_state.chrono_pos_effect = 0
+        st.session_state.chrono_neg_effect = 0
+        st.session_state.ino_pos_effect = 0
+        st.session_state.ino_neg_effect = 0
+        st.session_state.venous_return_effect = 0
+        st.session_state.afterload_effect = 0
+
+        st.session_state.graph_version += 1
+
+        st.session_state.phase = "select_box"
+        st.session_state.selected_node = None
+        st.session_state.pending_direction = None
+        st.session_state.prediction = None
+        st.rerun()
+
+st.write("")
+st.caption("📝 Arrows show direction of change only. CO = HR × SV (simplified learning model).")
 
 # ---------------------------
 # RIGHT: student dialogs + results
