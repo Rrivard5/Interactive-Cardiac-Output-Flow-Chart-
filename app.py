@@ -41,13 +41,7 @@ st.markdown(
         background: white;
         box-shadow: 0 2px 8px rgba(0,0,0,0.06);
         text-align: center;
-        min-height: 140px;
-        position: relative;
-        transition: all 0.2s ease;
-      }
-      
-      .flow-box:hover {
-        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        min-height: 160px;
       }
       
       .flow-box h4 {
@@ -57,7 +51,7 @@ st.markdown(
       }
       
       .flow-box .desc {
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         color: #666;
         margin-bottom: 12px;
       }
@@ -65,36 +59,7 @@ st.markdown(
       .arrow-display {
         font-size: 2.5rem;
         font-weight: 800;
-        margin: 8px 0;
-      }
-      
-      .button-group {
-        display: flex;
-        gap: 8px;
-        justify-content: center;
-        margin-top: 12px;
-      }
-      
-      .arrow-container {
-        position: relative;
-        height: 60px;
-        margin: 10px 0;
-      }
-      
-      .arrow-line {
-        position: absolute;
-        background: #666;
-        transform-origin: top left;
-      }
-      
-      .arrow-label {
-        position: absolute;
-        font-size: 0.85rem;
-        font-style: italic;
-        color: #666;
-        background: white;
-        padding: 2px 8px;
-        border-radius: 4px;
+        margin: 12px 0;
       }
       
       .good { 
@@ -110,14 +75,8 @@ st.markdown(
 
       .stButton button {
         border-radius: 8px !important;
-        padding: 0.6rem 1.2rem !important;
+        padding: 0.5rem 1rem !important;
         font-weight: 600 !important;
-        transition: all 0.2s ease !important;
-      }
-      
-      .stButton button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
       }
       
       .downstream-box {
@@ -126,7 +85,7 @@ st.markdown(
         padding: 20px;
         background: #ffffff;
         text-align: center;
-        min-height: 120px;
+        min-height: 140px;
       }
       
       .downstream-box h4 {
@@ -229,7 +188,7 @@ for k, v in defaults.items():
 # ---------------------------
 st.markdown("<div class='big-title'>🫀 Cardiac Output Flow Chart</div>", unsafe_allow_html=True)
 st.markdown(
-    "<p class='subtitle'>Click ONE box to change. Lock ↑ or ↓, predict CO, then see the flow chart update.</p>",
+    "<p class='subtitle'>Click Increase ⬆️ or Decrease ⬇️ in any box, predict the CO change, then see the flow chart update.</p>",
     unsafe_allow_html=True
 )
 
@@ -253,11 +212,11 @@ vr  = effect_arrow(st.session_state.venous_return_effect)
 al  = effect_arrow(st.session_state.afterload_effect)
 
 # ---------------------------
-# Flow chart using columns (NO ZOOM ISSUES!)
+# Flow chart using columns
 # ---------------------------
 
-# Row 1: Chronotropic agents header and Venous return
-col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
+# Row 1: Top level boxes
+col1, col2, col3, col4 = st.columns(4)
 
 with col1:
     st.markdown(
@@ -331,12 +290,12 @@ with col4:
             st.session_state.phase = "predict"
             st.rerun()
 
-st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+st.write("")
 
-# Row 2: Positive and Negative agents under their respective categories
-col1a, col1b, col2, col3a, col3b, col4 = st.columns([0.5, 0.5, 1, 0.5, 0.5, 1])
+# Row 2: Agent boxes under headers
+col1, col2, empty1, col3, col4, empty2 = st.columns([1, 1, 1, 1, 1, 1])
 
-with col1a:
+with col1:
     st.markdown(
         f"""
         <div class='flow-box' style='background: #FFE8A3;'>
@@ -348,19 +307,19 @@ with col1a:
     )
     c1, c2 = st.columns(2)
     with c1:
-        if st.button("⬆️", key="chrono_pos_inc", use_container_width=True, help="Increase positive chronotropic agents"):
+        if st.button("⬆️", key="chrono_pos_inc", use_container_width=True):
             st.session_state.selected_node = "chrono_pos"
             st.session_state.pending_direction = 1
             st.session_state.phase = "predict"
             st.rerun()
     with c2:
-        if st.button("⬇️", key="chrono_pos_dec", use_container_width=True, help="Decrease positive chronotropic agents"):
+        if st.button("⬇️", key="chrono_pos_dec", use_container_width=True):
             st.session_state.selected_node = "chrono_pos"
             st.session_state.pending_direction = -1
             st.session_state.phase = "predict"
             st.rerun()
 
-with col1b:
+with col2:
     st.markdown(
         f"""
         <div class='flow-box' style='background: #FFE8A3;'>
@@ -372,22 +331,19 @@ with col1b:
     )
     c1, c2 = st.columns(2)
     with c1:
-        if st.button("⬆️", key="chrono_neg_inc", use_container_width=True, help="Increase negative chronotropic agents"):
+        if st.button("⬆️", key="chrono_neg_inc", use_container_width=True):
             st.session_state.selected_node = "chrono_neg"
             st.session_state.pending_direction = 1
             st.session_state.phase = "predict"
             st.rerun()
     with c2:
-        if st.button("⬇️", key="chrono_neg_dec", use_container_width=True, help="Decrease negative chronotropic agents"):
+        if st.button("⬇️", key="chrono_neg_dec", use_container_width=True):
             st.session_state.selected_node = "chrono_neg"
             st.session_state.pending_direction = -1
             st.session_state.phase = "predict"
             st.rerun()
 
-with col2:
-    st.markdown("<div style='min-height: 140px;'></div>", unsafe_allow_html=True)
-
-with col3a:
+with col3:
     st.markdown(
         f"""
         <div class='flow-box' style='background: #FFD6CC;'>
@@ -399,19 +355,19 @@ with col3a:
     )
     c1, c2 = st.columns(2)
     with c1:
-        if st.button("⬆️", key="ino_pos_inc", use_container_width=True, help="Increase positive inotropic agents"):
+        if st.button("⬆️", key="ino_pos_inc", use_container_width=True):
             st.session_state.selected_node = "ino_pos"
             st.session_state.pending_direction = 1
             st.session_state.phase = "predict"
             st.rerun()
     with c2:
-        if st.button("⬇️", key="ino_pos_dec", use_container_width=True, help="Decrease positive inotropic agents"):
+        if st.button("⬇️", key="ino_pos_dec", use_container_width=True):
             st.session_state.selected_node = "ino_pos"
             st.session_state.pending_direction = -1
             st.session_state.phase = "predict"
             st.rerun()
 
-with col3b:
+with col4:
     st.markdown(
         f"""
         <div class='flow-box' style='background: #FFD6CC;'>
@@ -423,42 +379,44 @@ with col3b:
     )
     c1, c2 = st.columns(2)
     with c1:
-        if st.button("⬆️", key="ino_neg_inc", use_container_width=True, help="Increase negative inotropic agents"):
+        if st.button("⬆️", key="ino_neg_inc", use_container_width=True):
             st.session_state.selected_node = "ino_neg"
             st.session_state.pending_direction = 1
             st.session_state.phase = "predict"
             st.rerun()
     with c2:
-        if st.button("⬇️", key="ino_neg_dec", use_container_width=True, help="Decrease negative inotropic agents"):
+        if st.button("⬇️", key="ino_neg_dec", use_container_width=True):
             st.session_state.selected_node = "ino_neg"
             st.session_state.pending_direction = -1
             st.session_state.phase = "predict"
             st.rerun()
 
-with col4:
-    st.markdown("<div style='min-height: 140px;'></div>", unsafe_allow_html=True)
-
-# SVG arrows between rows 2 and 3
+# SVG arrows between rows
 st.markdown(
     """
-    <svg width="100%" height="100" style="margin: -10px 0;">
+    <svg width="100%" height="100" style="margin: 10px 0;">
         <defs>
             <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
                 <polygon points="0 0, 10 3, 0 6" fill="#666"/>
             </marker>
         </defs>
-        <!-- Chronotropic pos/neg to HR -->
+        <!-- Chronotropic agents to HR -->
         <line x1="12%" y1="10" x2="25%" y2="90" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
         <line x1="20%" y1="10" x2="25%" y2="90" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
-        <!-- Venous to SV -->
+        
+        <!-- Venous to SV with label -->
         <line x1="37%" y1="5" x2="62%" y2="90" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
-        <text x="48%" y="50" font-size="12" fill="#666" font-style="italic" text-anchor="middle">is directly correlated with</text>
-        <!-- Inotropic pos/neg to SV -->
+        <text x="48%" y="45" font-size="11" fill="#666" font-style="italic" text-anchor="middle">is directly</text>
+        <text x="48%" y="58" font-size="11" fill="#666" font-style="italic" text-anchor="middle">correlated with</text>
+        
+        <!-- Inotropic agents to SV -->
         <line x1="62%" y1="10" x2="62%" y2="90" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
         <line x1="70%" y1="10" x2="62%" y2="90" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
-        <!-- Afterload to SV -->
+        
+        <!-- Afterload to SV with label -->
         <line x1="88%" y1="5" x2="75%" y2="90" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
-        <text x="82%" y="50" font-size="12" fill="#666" font-style="italic" text-anchor="middle">is inversely correlated with</text>
+        <text x="82%" y="45" font-size="11" fill="#666" font-style="italic" text-anchor="middle">is inversely</text>
+        <text x="82%" y="58" font-size="11" fill="#666" font-style="italic" text-anchor="middle">correlated with</text>
     </svg>
     """,
     unsafe_allow_html=True
@@ -520,7 +478,7 @@ with col2:
 # Final arrows to CO
 st.markdown(
     """
-    <svg width="100%" height="80" style="margin: 5px 0;">
+    <svg width="100%" height="80" style="margin: 10px 0;">
         <defs>
             <marker id="arrowhead2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
                 <polygon points="0 0, 10 3, 0 6" fill="#333"/>
@@ -548,9 +506,6 @@ st.markdown(
 # ---------------------------
 # Handle phase transitions
 # ---------------------------
-
-# ---- PHASE: choose_dir ----
-# This phase is now skipped - buttons go directly to predict
 
 # ---- PHASE: predict ----
 if st.session_state.phase == "predict" and st.session_state.selected_node:
