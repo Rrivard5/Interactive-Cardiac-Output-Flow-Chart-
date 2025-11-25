@@ -1,5 +1,5 @@
 import streamlit as st
-from streamlit_agraph import agraph, Node, Edge, Config
+import streamlit.components.v1 as components
 
 # ---------------------------
 # Page config + style
@@ -55,16 +55,6 @@ st.markdown(
       .stButton button:hover {
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
-      }
-      
-      /* Force zoom on the graph */
-      .streamlit-agraph svg {
-        transform: scale(2.0) !important;
-        transform-origin: center center !important;
-      }
-      
-      .streamlit-agraph {
-        overflow: visible !important;
       }
     </style>
     """,
@@ -162,7 +152,7 @@ SV_arrow = effect_arrow(sv_dir)
 CO_arrow = effect_arrow(co_dir)
 
 # ---------------------------
-# Flow chart
+# Flow chart with custom HTML/SVG
 # ---------------------------
 cp  = effect_arrow(st.session_state.chrono_pos_effect)
 cn  = effect_arrow(st.session_state.chrono_neg_effect)
@@ -171,78 +161,107 @@ inn = effect_arrow(st.session_state.ino_neg_effect)
 vr  = effect_arrow(st.session_state.venous_return_effect)
 al  = effect_arrow(st.session_state.afterload_effect)
 
-# Repositioned nodes - trying different coordinates to improve initial zoom
-nodes = [
-    Node(id="chrono_header",
-         label="Chronotropic agents\n(alter SA node and\nAV node activity)",
-         x=100,   y=100, size=1800, color="#EFE7E5", shape="box", font={"size": 20}),
-    Node(id="venous",
-         label=f"Venous return\n(preload)\n{vr}",
-         x=380, y=100, size=1650, color="#FFF6C8", shape="box", font={"size": 20}),
-    Node(id="ino_header",
-         label="Inotropic agents\n(alter contractility)",
-         x=660, y=100, size=1800, color="#FFF0EC", shape="box", font={"size": 20}),
-    Node(id="afterload",
-         label=f"Afterload\n{al}",
-         x=960, y=100, size=1650, color="#E1E8FF", shape="box", font={"size": 20}),
+# Create custom HTML flowchart
+flowchart_html = f"""
+<div id="flowchart" style="width: 100%; height: 650px; border: 1px solid #ddd; border-radius: 8px; background: white; position: relative;">
+    <svg width="100%" height="100%" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid meet">
+        <!-- Arrows/Lines -->
+        <line x1="150" y1="200" x2="150" y2="380" stroke="#999" stroke-width="2" marker-end="url(#arrowhead)"/>
+        <line x1="350" y1="200" x2="350" y2="380" stroke="#999" stroke-width="2" marker-end="url(#arrowhead)"/>
+        <line x1="600" y1="150" x2="600" y2="380" stroke="#999" stroke-width="2" marker-end="url(#arrowhead)"/>
+        <line x1="750" y1="200" x2="750" y2="380" stroke="#999" stroke-width="2" marker-end="url(#arrowhead)"/>
+        <line x1="950" y1="200" x2="950" y2="380" stroke="#999" stroke-width="2" marker-end="url(#arrowhead)"/>
+        <line x1="1050" y1="150" x2="900" y2="350" stroke="#999" stroke-width="2" marker-end="url(#arrowhead)"/>
+        
+        <line x1="250" y1="450" x2="600" y2="650" stroke="#999" stroke-width="3" marker-end="url(#arrowhead)"/>
+        <line x1="850" y1="450" x2="600" y2="650" stroke="#999" stroke-width="3" marker-end="url(#arrowhead)"/>
+        
+        <!-- Arrow marker definition -->
+        <defs>
+            <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                <polygon points="0 0, 10 3, 0 6" fill="#999"/>
+            </marker>
+        </defs>
+        
+        <!-- Top Row -->
+        <rect id="chrono_header" x="50" y="50" width="250" height="80" rx="8" fill="#EFE7E5" stroke="#999" stroke-width="2" style="cursor: pointer;"/>
+        <text x="175" y="85" text-anchor="middle" font-size="14" font-weight="bold">Chronotropic agents</text>
+        <text x="175" y="105" text-anchor="middle" font-size="12">(alter SA node and</text>
+        <text x="175" y="120" text-anchor="middle" font-size="12">AV node activity)</text>
+        
+        <rect id="venous" x="475" y="50" width="250" height="80" rx="8" fill="#FFF6C8" stroke="#999" stroke-width="2" style="cursor: pointer;"/>
+        <text x="600" y="80" text-anchor="middle" font-size="14" font-weight="bold">Venous return</text>
+        <text x="600" y="100" text-anchor="middle" font-size="12">(preload)</text>
+        <text x="600" y="120" text-anchor="middle" font-size="16" font-weight="bold">{vr}</text>
+        
+        <rect id="ino_header" x="750" y="50" width="200" height="80" rx="8" fill="#FFF0EC" stroke="#999" stroke-width="2" style="cursor: pointer;"/>
+        <text x="850" y="80" text-anchor="middle" font-size="14" font-weight="bold">Inotropic agents</text>
+        <text x="850" y="100" text-anchor="middle" font-size="12">(alter</text>
+        <text x="850" y="115" text-anchor="middle" font-size="12">contractility)</text>
+        
+        <rect id="afterload" x="975" y="50" width="200" height="80" rx="8" fill="#E1E8FF" stroke="#999" stroke-width="2" style="cursor: pointer;"/>
+        <text x="1075" y="80" text-anchor="middle" font-size="14" font-weight="bold">Afterload</text>
+        <text x="1075" y="110" text-anchor="middle" font-size="16" font-weight="bold">{al}</text>
+        
+        <!-- Second Row -->
+        <rect id="chrono_pos" x="50" y="150" width="200" height="60" rx="8" fill="#FFE8A3" stroke="#999" stroke-width="2" style="cursor: pointer;"/>
+        <text x="150" y="175" text-anchor="middle" font-size="13">Positive agents</text>
+        <text x="150" y="195" text-anchor="middle" font-size="16" font-weight="bold">{cp}</text>
+        
+        <rect id="chrono_neg" x="275" y="150" width="200" height="60" rx="8" fill="#FFE8A3" stroke="#999" stroke-width="2" style="cursor: pointer;"/>
+        <text x="375" y="175" text-anchor="middle" font-size="13">Negative agents</text>
+        <text x="375" y="195" text-anchor="middle" font-size="16" font-weight="bold">{cn}</text>
+        
+        <rect id="ino_pos" x="650" y="150" width="200" height="60" rx="8" fill="#FFD6CC" stroke="#999" stroke-width="2" style="cursor: pointer;"/>
+        <text x="750" y="175" text-anchor="middle" font-size="13">Positive agents</text>
+        <text x="750" y="195" text-anchor="middle" font-size="16" font-weight="bold">{ip}</text>
+        
+        <rect id="ino_neg" x="875" y="150" width="200" height="60" rx="8" fill="#FFD6CC" stroke="#999" stroke-width="2" style="cursor: pointer;"/>
+        <text x="975" y="175" text-anchor="middle" font-size="13">Negative agents</text>
+        <text x="975" y="195" text-anchor="middle" font-size="16" font-weight="bold">{inn}</text>
+        
+        <!-- Third Row -->
+        <rect id="hr" x="50" y="380" width="400" height="80" rx="8" fill="#FFFFFF" stroke="#333" stroke-width="3" style="cursor: pointer;"/>
+        <text x="250" y="415" text-anchor="middle" font-size="18" font-weight="bold">Heart rate (HR)</text>
+        <text x="250" y="445" text-anchor="middle" font-size="22" font-weight="bold">{HR_arrow}</text>
+        
+        <rect id="sv" x="650" y="380" width="400" height="80" rx="8" fill="#FFFFFF" stroke="#333" stroke-width="3" style="cursor: pointer;"/>
+        <text x="850" y="415" text-anchor="middle" font-size="18" font-weight="bold">Stroke volume (SV)</text>
+        <text x="850" y="445" text-anchor="middle" font-size="22" font-weight="bold">{SV_arrow}</text>
+        
+        <!-- Bottom -->
+        <rect id="co" x="400" y="650" width="400" height="100" rx="8" fill="#F3D6DA" stroke="#333" stroke-width="3" style="cursor: pointer;"/>
+        <text x="600" y="690" text-anchor="middle" font-size="20" font-weight="bold">Cardiac output (CO)</text>
+        <text x="600" y="725" text-anchor="middle" font-size="26" font-weight="bold">{CO_arrow}</text>
+    </svg>
+</div>
 
-    Node(id="chrono_pos", label=f"Positive agents\n{cp}",
-         x=-20, y=270, size=1350, color="#FFE8A3", shape="box", font={"size": 18}),
-    Node(id="chrono_neg", label=f"Negative agents\n{cn}",
-         x=220,  y=270, size=1350, color="#FFE8A3", shape="box", font={"size": 18}),
+<script>
+    const clickableIds = ['chrono_header', 'chrono_pos', 'chrono_neg', 'venous', 'ino_header', 'ino_pos', 'ino_neg', 'afterload', 'hr', 'sv'];
+    
+    clickableIds.forEach(id => {{
+        const elem = document.getElementById(id);
+        if (elem) {{
+            elem.addEventListener('click', () => {{
+                window.parent.postMessage({{
+                    type: 'streamlit:setComponentValue',
+                    value: id
+                }}, '*');
+            }});
+            
+            elem.addEventListener('mouseenter', () => {{
+                elem.style.opacity = '0.8';
+            }});
+            
+            elem.addEventListener('mouseleave', () => {{
+                elem.style.opacity = '1';
+            }});
+        }}
+    }});
+</script>
+"""
 
-    Node(id="ino_pos", label=f"Positive agents\n{ip}",
-         x=600, y=270, size=1350, color="#FFD6CC", shape="box", font={"size": 18}),
-    Node(id="ino_neg", label=f"Negative agents\n{inn}",
-         x=740, y=270, size=1350, color="#FFD6CC", shape="box", font={"size": 18}),
-
-    Node(id="hr", label=f"Heart rate (HR)\n{HR_arrow}",
-         x=100,   y=480, size=1950, color="#FFFFFF", shape="box", font={"size": 22}),
-    Node(id="sv", label=f"Stroke volume (SV)\n{SV_arrow}",
-         x=660, y=480, size=1950, color="#FFFFFF", shape="box", font={"size": 22}),
-
-    Node(id="co", label=f"Cardiac output (CO)\n{CO_arrow}",
-         x=380, y=685, size=2100, color="#F3D6DA", shape="box", font={"size": 22}),
-]
-
-# Invisible redraw node
-nodes.append(
-    Node(
-        id=f"_force_{st.session_state.graph_version}",
-        label="",
-        x=-9999, y=-9999,
-        size=1,
-        color="#FFFFFF",
-        shape="dot",
-        font={"size": 1}
-    )
-)
-
-edges = [
-    Edge(source="chrono_pos", target="hr"),
-    Edge(source="chrono_neg", target="hr"),
-    Edge(source="venous", target="sv"),
-    Edge(source="ino_pos", target="sv"),
-    Edge(source="ino_neg", target="sv"),
-    Edge(source="afterload", target="sv"),
-    Edge(source="hr", target="co"),
-    Edge(source="sv", target="co"),
-]
-
-config = Config(
-    width="100%",
-    height=500,
-    directed=True,
-    physics=False,
-    nodeHighlightBehavior=True,
-    interaction={
-        "dragNodes": False,
-        "dragView": True,
-        "zoomView": True
-    }
-)
-
-clicked = agraph(nodes=nodes, edges=edges, config=config)
+clicked = components.html(flowchart_html, height=650, scrolling=False)
 
 # ---------------------------
 # Handle click → phase transitions
