@@ -221,7 +221,7 @@ edges = [
 
 config = Config(
     width="100%",
-    height=720,
+    height=500,
     directed=True,
     physics=False,
     nodeHighlightBehavior=True,
