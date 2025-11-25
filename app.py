@@ -228,15 +228,13 @@ al  = effect_arrow(st.session_state.afterload_effect)
 # Flow chart using columns (NO ZOOM ISSUES!)
 # ---------------------------
 
-# Row 1: Top headers
-col1, col2, col3, col4 = st.columns(4)
+# Row 1: Chronotropic agents header and Venous return
+col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
 
 with col1:
-    if st.button("📦", key="chrono_header_btn", use_container_width=True, disabled=True):
-        pass
     st.markdown(
         """
-        <div class='flow-box' style='cursor: default;'>
+        <div class='flow-box' style='cursor: default; background: #EFE7E5;'>
             <h4>Chronotropic agents</h4>
             <div class='desc'>(alter SA node and AV node activity)</div>
         </div>
@@ -245,14 +243,15 @@ with col1:
     )
 
 with col2:
-    if st.button("📦", key="venous_btn", help="Click to modify Venous return", use_container_width=True):
+    if st.button("📦 Click", key="venous_btn", help="Click to modify Venous return", use_container_width=True):
         st.session_state.selected_node = "venous"
         st.session_state.phase = "choose_dir"
         st.rerun()
     st.markdown(
         f"""
-        <div class='flow-box'>
-            <h4>Venous return (preload)</h4>
+        <div class='flow-box' style='background: #FFF6C8;'>
+            <h4>Venous return</h4>
+            <div class='desc'>(preload)</div>
             <div class='arrow-display'>{vr}</div>
         </div>
         """,
@@ -260,11 +259,9 @@ with col2:
     )
 
 with col3:
-    if st.button("📦", key="ino_header_btn", use_container_width=True, disabled=True):
-        pass
     st.markdown(
         """
-        <div class='flow-box' style='cursor: default;'>
+        <div class='flow-box' style='cursor: default; background: #FFF0EC;'>
             <h4>Inotropic agents</h4>
             <div class='desc'>(alter contractility)</div>
         </div>
@@ -273,13 +270,13 @@ with col3:
     )
 
 with col4:
-    if st.button("📦", key="afterload_btn", help="Click to modify Afterload", use_container_width=True):
+    if st.button("📦 Click", key="afterload_btn", help="Click to modify Afterload", use_container_width=True):
         st.session_state.selected_node = "afterload"
         st.session_state.phase = "choose_dir"
         st.rerun()
     st.markdown(
         f"""
-        <div class='flow-box'>
+        <div class='flow-box' style='background: #E1E8FF;'>
             <h4>Afterload</h4>
             <div class='arrow-display'>{al}</div>
         </div>
@@ -287,13 +284,14 @@ with col4:
         unsafe_allow_html=True
     )
 
-st.write("")
+# Arrow indicators
+st.markdown("<div style='text-align: center; font-size: 2rem; color: #999; margin: 5px 0;'>↓ ↓ ↓ ↓</div>", unsafe_allow_html=True)
 
-# Row 2: Agent boxes
-col1, col2, col3, col4 = st.columns(4)
+# Row 2: Positive and Negative agents under their respective categories
+col1a, col1b, col2, col3a, col3b, col4 = st.columns([0.5, 0.5, 1, 0.5, 0.5, 1])
 
-with col1:
-    if st.button("📦", key="chrono_pos_btn", help="Click to modify Positive chronotropic agents", use_container_width=True):
+with col1a:
+    if st.button("📦 Click", key="chrono_pos_btn", help="Click to modify Positive chronotropic agents", use_container_width=True):
         st.session_state.selected_node = "chrono_pos"
         st.session_state.phase = "choose_dir"
         st.rerun()
@@ -307,8 +305,8 @@ with col1:
         unsafe_allow_html=True
     )
 
-with col2:
-    if st.button("📦", key="chrono_neg_btn", help="Click to modify Negative chronotropic agents", use_container_width=True):
+with col1b:
+    if st.button("📦 Click", key="chrono_neg_btn", help="Click to modify Negative chronotropic agents", use_container_width=True):
         st.session_state.selected_node = "chrono_neg"
         st.session_state.phase = "choose_dir"
         st.rerun()
@@ -322,8 +320,11 @@ with col2:
         unsafe_allow_html=True
     )
 
-with col3:
-    if st.button("📦", key="ino_pos_btn", help="Click to modify Positive inotropic agents", use_container_width=True):
+with col2:
+    st.markdown("<div style='min-height: 140px;'></div>", unsafe_allow_html=True)
+
+with col3a:
+    if st.button("📦 Click", key="ino_pos_btn", help="Click to modify Positive inotropic agents", use_container_width=True):
         st.session_state.selected_node = "ino_pos"
         st.session_state.phase = "choose_dir"
         st.rerun()
@@ -337,8 +338,8 @@ with col3:
         unsafe_allow_html=True
     )
 
-with col4:
-    if st.button("📦", key="ino_neg_btn", help="Click to modify Negative inotropic agents", use_container_width=True):
+with col3b:
+    if st.button("📦 Click", key="ino_neg_btn", help="Click to modify Negative inotropic agents", use_container_width=True):
         st.session_state.selected_node = "ino_neg"
         st.session_state.phase = "choose_dir"
         st.rerun()
@@ -352,13 +353,17 @@ with col4:
         unsafe_allow_html=True
     )
 
-st.write("")
+with col4:
+    st.markdown("<div style='min-height: 140px;'></div>", unsafe_allow_html=True)
+
+# Arrow indicators showing convergence to HR and SV
+st.markdown("<div style='text-align: center; font-size: 2rem; color: #999; margin: 5px 0;'>↓ ↓ ↓ ↓ ↓ ↓</div>", unsafe_allow_html=True)
 
 # Row 3: HR and SV
 col1, col2 = st.columns(2)
 
 with col1:
-    if st.button("📦", key="hr_btn", help="Click to modify Heart Rate", use_container_width=True):
+    if st.button("📦 Click", key="hr_btn", help="Click to modify Heart Rate", use_container_width=True):
         st.session_state.selected_node = "hr"
         st.session_state.phase = "choose_dir"
         st.rerun()
@@ -373,7 +378,7 @@ with col1:
     )
 
 with col2:
-    if st.button("📦", key="sv_btn", help="Click to modify Stroke Volume", use_container_width=True):
+    if st.button("📦 Click", key="sv_btn", help="Click to modify Stroke Volume", use_container_width=True):
         st.session_state.selected_node = "sv"
         st.session_state.phase = "choose_dir"
         st.rerun()
@@ -387,7 +392,8 @@ with col2:
         unsafe_allow_html=True
     )
 
-st.write("")
+# Final arrow to CO
+st.markdown("<div style='text-align: center; font-size: 2.5rem; color: #333; margin: 10px 0; font-weight: bold;'>↓</div>", unsafe_allow_html=True)
 
 # Row 4: CO
 st.markdown(
