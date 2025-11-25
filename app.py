@@ -1,5 +1,4 @@
 import streamlit as st
-import streamlit.components.v1 as components
 
 # ---------------------------
 # Page config + style
@@ -34,6 +33,42 @@ st.markdown(
         box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         margin-bottom: 1rem;
       }
+      
+      .flow-box {
+        border: 2px solid #ddd;
+        border-radius: 12px;
+        padding: 20px;
+        background: white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        text-align: center;
+        min-height: 140px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      
+      .flow-box:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        transform: translateY(-2px);
+      }
+      
+      .flow-box h4 {
+        margin: 0 0 8px 0;
+        font-size: 1.1rem;
+        font-weight: 700;
+      }
+      
+      .flow-box .desc {
+        font-size: 0.9rem;
+        color: #666;
+        margin-bottom: 12px;
+      }
+      
+      .arrow-display {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin: 8px 0;
+      }
+      
       .good { 
         color: #0a7a2f; 
         font-weight: 800;
@@ -55,6 +90,37 @@ st.markdown(
       .stButton button:hover {
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+      }
+      
+      .downstream-box {
+        border: 3px solid #333;
+        border-radius: 12px;
+        padding: 20px;
+        background: #ffffff;
+        text-align: center;
+        min-height: 120px;
+      }
+      
+      .downstream-box h4 {
+        margin: 0 0 8px 0;
+        font-size: 1.2rem;
+        font-weight: 700;
+      }
+      
+      .co-box {
+        border: 3px solid #333;
+        border-radius: 12px;
+        padding: 25px;
+        background: #F3D6DA;
+        text-align: center;
+        max-width: 500px;
+        margin: 0 auto;
+      }
+      
+      .co-box h4 {
+        margin: 0 0 8px 0;
+        font-size: 1.3rem;
+        font-weight: 700;
       }
     </style>
     """,
@@ -151,9 +217,6 @@ HR_arrow = effect_arrow(hr_dir)
 SV_arrow = effect_arrow(sv_dir)
 CO_arrow = effect_arrow(co_dir)
 
-# ---------------------------
-# Flow chart with custom HTML/SVG
-# ---------------------------
 cp  = effect_arrow(st.session_state.chrono_pos_effect)
 cn  = effect_arrow(st.session_state.chrono_neg_effect)
 ip  = effect_arrow(st.session_state.ino_pos_effect)
@@ -161,117 +224,185 @@ inn = effect_arrow(st.session_state.ino_neg_effect)
 vr  = effect_arrow(st.session_state.venous_return_effect)
 al  = effect_arrow(st.session_state.afterload_effect)
 
-# Create custom HTML flowchart
-flowchart_html = f"""
-<div id="flowchart" style="width: 100%; height: 650px; border: 1px solid #ddd; border-radius: 8px; background: white; position: relative;">
-    <svg width="100%" height="100%" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid meet">
-        <!-- Arrows/Lines -->
-        <line x1="150" y1="200" x2="150" y2="380" stroke="#999" stroke-width="2" marker-end="url(#arrowhead)"/>
-        <line x1="350" y1="200" x2="350" y2="380" stroke="#999" stroke-width="2" marker-end="url(#arrowhead)"/>
-        <line x1="600" y1="150" x2="600" y2="380" stroke="#999" stroke-width="2" marker-end="url(#arrowhead)"/>
-        <line x1="750" y1="200" x2="750" y2="380" stroke="#999" stroke-width="2" marker-end="url(#arrowhead)"/>
-        <line x1="950" y1="200" x2="950" y2="380" stroke="#999" stroke-width="2" marker-end="url(#arrowhead)"/>
-        <line x1="1050" y1="150" x2="900" y2="350" stroke="#999" stroke-width="2" marker-end="url(#arrowhead)"/>
-        
-        <line x1="250" y1="450" x2="600" y2="650" stroke="#999" stroke-width="3" marker-end="url(#arrowhead)"/>
-        <line x1="850" y1="450" x2="600" y2="650" stroke="#999" stroke-width="3" marker-end="url(#arrowhead)"/>
-        
-        <!-- Arrow marker definition -->
-        <defs>
-            <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
-                <polygon points="0 0, 10 3, 0 6" fill="#999"/>
-            </marker>
-        </defs>
-        
-        <!-- Top Row -->
-        <rect id="chrono_header" x="50" y="50" width="250" height="80" rx="8" fill="#EFE7E5" stroke="#999" stroke-width="2" style="cursor: pointer;"/>
-        <text x="175" y="85" text-anchor="middle" font-size="14" font-weight="bold">Chronotropic agents</text>
-        <text x="175" y="105" text-anchor="middle" font-size="12">(alter SA node and</text>
-        <text x="175" y="120" text-anchor="middle" font-size="12">AV node activity)</text>
-        
-        <rect id="venous" x="475" y="50" width="250" height="80" rx="8" fill="#FFF6C8" stroke="#999" stroke-width="2" style="cursor: pointer;"/>
-        <text x="600" y="80" text-anchor="middle" font-size="14" font-weight="bold">Venous return</text>
-        <text x="600" y="100" text-anchor="middle" font-size="12">(preload)</text>
-        <text x="600" y="120" text-anchor="middle" font-size="16" font-weight="bold">{vr}</text>
-        
-        <rect id="ino_header" x="750" y="50" width="200" height="80" rx="8" fill="#FFF0EC" stroke="#999" stroke-width="2" style="cursor: pointer;"/>
-        <text x="850" y="80" text-anchor="middle" font-size="14" font-weight="bold">Inotropic agents</text>
-        <text x="850" y="100" text-anchor="middle" font-size="12">(alter</text>
-        <text x="850" y="115" text-anchor="middle" font-size="12">contractility)</text>
-        
-        <rect id="afterload" x="975" y="50" width="200" height="80" rx="8" fill="#E1E8FF" stroke="#999" stroke-width="2" style="cursor: pointer;"/>
-        <text x="1075" y="80" text-anchor="middle" font-size="14" font-weight="bold">Afterload</text>
-        <text x="1075" y="110" text-anchor="middle" font-size="16" font-weight="bold">{al}</text>
-        
-        <!-- Second Row -->
-        <rect id="chrono_pos" x="50" y="150" width="200" height="60" rx="8" fill="#FFE8A3" stroke="#999" stroke-width="2" style="cursor: pointer;"/>
-        <text x="150" y="175" text-anchor="middle" font-size="13">Positive agents</text>
-        <text x="150" y="195" text-anchor="middle" font-size="16" font-weight="bold">{cp}</text>
-        
-        <rect id="chrono_neg" x="275" y="150" width="200" height="60" rx="8" fill="#FFE8A3" stroke="#999" stroke-width="2" style="cursor: pointer;"/>
-        <text x="375" y="175" text-anchor="middle" font-size="13">Negative agents</text>
-        <text x="375" y="195" text-anchor="middle" font-size="16" font-weight="bold">{cn}</text>
-        
-        <rect id="ino_pos" x="650" y="150" width="200" height="60" rx="8" fill="#FFD6CC" stroke="#999" stroke-width="2" style="cursor: pointer;"/>
-        <text x="750" y="175" text-anchor="middle" font-size="13">Positive agents</text>
-        <text x="750" y="195" text-anchor="middle" font-size="16" font-weight="bold">{ip}</text>
-        
-        <rect id="ino_neg" x="875" y="150" width="200" height="60" rx="8" fill="#FFD6CC" stroke="#999" stroke-width="2" style="cursor: pointer;"/>
-        <text x="975" y="175" text-anchor="middle" font-size="13">Negative agents</text>
-        <text x="975" y="195" text-anchor="middle" font-size="16" font-weight="bold">{inn}</text>
-        
-        <!-- Third Row -->
-        <rect id="hr" x="50" y="380" width="400" height="80" rx="8" fill="#FFFFFF" stroke="#333" stroke-width="3" style="cursor: pointer;"/>
-        <text x="250" y="415" text-anchor="middle" font-size="18" font-weight="bold">Heart rate (HR)</text>
-        <text x="250" y="445" text-anchor="middle" font-size="22" font-weight="bold">{HR_arrow}</text>
-        
-        <rect id="sv" x="650" y="380" width="400" height="80" rx="8" fill="#FFFFFF" stroke="#333" stroke-width="3" style="cursor: pointer;"/>
-        <text x="850" y="415" text-anchor="middle" font-size="18" font-weight="bold">Stroke volume (SV)</text>
-        <text x="850" y="445" text-anchor="middle" font-size="22" font-weight="bold">{SV_arrow}</text>
-        
-        <!-- Bottom -->
-        <rect id="co" x="400" y="650" width="400" height="100" rx="8" fill="#F3D6DA" stroke="#333" stroke-width="3" style="cursor: pointer;"/>
-        <text x="600" y="690" text-anchor="middle" font-size="20" font-weight="bold">Cardiac output (CO)</text>
-        <text x="600" y="725" text-anchor="middle" font-size="26" font-weight="bold">{CO_arrow}</text>
-    </svg>
-</div>
+# ---------------------------
+# Flow chart using columns (NO ZOOM ISSUES!)
+# ---------------------------
 
-<script>
-    const clickableIds = ['chrono_header', 'chrono_pos', 'chrono_neg', 'venous', 'ino_header', 'ino_pos', 'ino_neg', 'afterload', 'hr', 'sv'];
-    
-    clickableIds.forEach(id => {{
-        const elem = document.getElementById(id);
-        if (elem) {{
-            elem.addEventListener('click', () => {{
-                window.parent.postMessage({{
-                    type: 'streamlit:setComponentValue',
-                    value: id
-                }}, '*');
-            }});
-            
-            elem.addEventListener('mouseenter', () => {{
-                elem.style.opacity = '0.8';
-            }});
-            
-            elem.addEventListener('mouseleave', () => {{
-                elem.style.opacity = '1';
-            }});
-        }}
-    }});
-</script>
-"""
+# Row 1: Top headers
+col1, col2, col3, col4 = st.columns(4)
 
-clicked = components.html(flowchart_html, height=650, scrolling=False)
+with col1:
+    if st.button("📦", key="chrono_header_btn", use_container_width=True, disabled=True):
+        pass
+    st.markdown(
+        """
+        <div class='flow-box' style='cursor: default;'>
+            <h4>Chronotropic agents</h4>
+            <div class='desc'>(alter SA node and AV node activity)</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+with col2:
+    if st.button("📦", key="venous_btn", help="Click to modify Venous return", use_container_width=True):
+        st.session_state.selected_node = "venous"
+        st.session_state.phase = "choose_dir"
+        st.rerun()
+    st.markdown(
+        f"""
+        <div class='flow-box'>
+            <h4>Venous return (preload)</h4>
+            <div class='arrow-display'>{vr}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+with col3:
+    if st.button("📦", key="ino_header_btn", use_container_width=True, disabled=True):
+        pass
+    st.markdown(
+        """
+        <div class='flow-box' style='cursor: default;'>
+            <h4>Inotropic agents</h4>
+            <div class='desc'>(alter contractility)</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+with col4:
+    if st.button("📦", key="afterload_btn", help="Click to modify Afterload", use_container_width=True):
+        st.session_state.selected_node = "afterload"
+        st.session_state.phase = "choose_dir"
+        st.rerun()
+    st.markdown(
+        f"""
+        <div class='flow-box'>
+            <h4>Afterload</h4>
+            <div class='arrow-display'>{al}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+st.write("")
+
+# Row 2: Agent boxes
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+    if st.button("📦", key="chrono_pos_btn", help="Click to modify Positive chronotropic agents", use_container_width=True):
+        st.session_state.selected_node = "chrono_pos"
+        st.session_state.phase = "choose_dir"
+        st.rerun()
+    st.markdown(
+        f"""
+        <div class='flow-box' style='background: #FFE8A3;'>
+            <h4>Positive agents</h4>
+            <div class='arrow-display'>{cp}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+with col2:
+    if st.button("📦", key="chrono_neg_btn", help="Click to modify Negative chronotropic agents", use_container_width=True):
+        st.session_state.selected_node = "chrono_neg"
+        st.session_state.phase = "choose_dir"
+        st.rerun()
+    st.markdown(
+        f"""
+        <div class='flow-box' style='background: #FFE8A3;'>
+            <h4>Negative agents</h4>
+            <div class='arrow-display'>{cn}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+with col3:
+    if st.button("📦", key="ino_pos_btn", help="Click to modify Positive inotropic agents", use_container_width=True):
+        st.session_state.selected_node = "ino_pos"
+        st.session_state.phase = "choose_dir"
+        st.rerun()
+    st.markdown(
+        f"""
+        <div class='flow-box' style='background: #FFD6CC;'>
+            <h4>Positive agents</h4>
+            <div class='arrow-display'>{ip}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+with col4:
+    if st.button("📦", key="ino_neg_btn", help="Click to modify Negative inotropic agents", use_container_width=True):
+        st.session_state.selected_node = "ino_neg"
+        st.session_state.phase = "choose_dir"
+        st.rerun()
+    st.markdown(
+        f"""
+        <div class='flow-box' style='background: #FFD6CC;'>
+            <h4>Negative agents</h4>
+            <div class='arrow-display'>{inn}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+st.write("")
+
+# Row 3: HR and SV
+col1, col2 = st.columns(2)
+
+with col1:
+    if st.button("📦", key="hr_btn", help="Click to modify Heart Rate", use_container_width=True):
+        st.session_state.selected_node = "hr"
+        st.session_state.phase = "choose_dir"
+        st.rerun()
+    st.markdown(
+        f"""
+        <div class='downstream-box'>
+            <h4>Heart rate (HR)</h4>
+            <div class='arrow-display'>{HR_arrow}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+with col2:
+    if st.button("📦", key="sv_btn", help="Click to modify Stroke Volume", use_container_width=True):
+        st.session_state.selected_node = "sv"
+        st.session_state.phase = "choose_dir"
+        st.rerun()
+    st.markdown(
+        f"""
+        <div class='downstream-box'>
+            <h4>Stroke volume (SV)</h4>
+            <div class='arrow-display'>{SV_arrow}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+st.write("")
+
+# Row 4: CO
+st.markdown(
+    f"""
+    <div class='co-box'>
+        <h4>Cardiac output (CO)</h4>
+        <div class='arrow-display'>{CO_arrow}</div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 # ---------------------------
-# Handle click → phase transitions
+# Handle phase transitions
 # ---------------------------
-controllables = {"chrono_pos", "chrono_neg", "ino_pos", "ino_neg", "venous", "afterload", "hr", "sv"}
-
-if st.session_state.phase == "select_box" and clicked in controllables:
-    st.session_state.selected_node = clicked
-    st.session_state.phase = "choose_dir"
-    st.rerun()
 
 # ---- PHASE: choose_dir ----
 if st.session_state.phase == "choose_dir" and st.session_state.selected_node:
@@ -305,21 +436,6 @@ if st.session_state.phase == "choose_dir" and st.session_state.selected_node:
                     st.session_state.phase = "predict"
                     st.rerun()
         choose_dir_dialog()
-    else:
-        st.markdown(f"**📍 {node_title}**")
-        st.write("Do you want to increase or decrease this factor?")
-        st.write("")
-        c1, c2 = st.columns(2)
-        with c1:
-            if st.button("⬆️ Increase", use_container_width=True):
-                st.session_state.pending_direction = 1
-                st.session_state.phase = "predict"
-                st.rerun()
-        with c2:
-            if st.button("⬇️ Decrease", use_container_width=True):
-                st.session_state.pending_direction = -1
-                st.session_state.phase = "predict"
-                st.rerun()
 
 # ---- PHASE: predict ----
 if st.session_state.phase == "predict" and st.session_state.selected_node:
@@ -362,38 +478,6 @@ if st.session_state.phase == "predict" and st.session_state.selected_node:
                 st.session_state.phase = "show_result"
                 st.rerun()
         predict_dialog()
-    else:
-        st.write("**🔮 What will happen to cardiac output?**")
-        st.write("")
-        pred = st.radio("Your prediction:",
-                        ["Increase", "Decrease", "No change"],
-                        index=None)
-        st.write("")
-        if st.button("✅ Submit prediction", type="primary", disabled=(pred is None)):
-            st.session_state.prediction = pred
-            key_map = {
-                "chrono_pos": "chrono_pos_effect",
-                "chrono_neg": "chrono_neg_effect",
-                "ino_pos": "ino_pos_effect",
-                "ino_neg": "ino_neg_effect",
-                "venous": "venous_return_effect",
-                "afterload": "afterload_effect",
-                "hr": "hr_direct_effect",
-                "sv": "sv_direct_effect",
-            }
-            eff_key = key_map[node]
-            st.session_state[eff_key] = st.session_state.pending_direction
-
-            st.session_state.graph_version += 1
-
-            _, _, CO_after = compute_state()
-            dir_CO = expected_direction(CO_before, CO_after)
-            correct = (dir_CO == pred)
-
-            st.session_state.last_feedback = dir_CO
-            st.session_state.last_correct = correct
-            st.session_state.phase = "show_result"
-            st.rerun()
 
 # ---- PHASE: show_result ----
 if st.session_state.phase == "show_result":
@@ -419,24 +503,6 @@ if st.session_state.phase == "show_result":
     
     if have_dialog():
         show_result_dialog()
-    else:
-        st.markdown(
-            f"""
-            <div class="node-card">
-              <div style="margin-bottom: 10px;"><b>Your prediction:</b> {st.session_state.prediction}</div>
-              <div><b>Correct CO change:</b> {st.session_state.last_feedback}</div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-        if st.session_state.last_correct:
-            st.markdown("<div class='good'>✅ Your prediction was correct!</div>", unsafe_allow_html=True)
-        else:
-            st.markdown("<div class='bad'>❌ Your prediction was not correct.</div>", unsafe_allow_html=True)
-
-        st.write("")
-        st.info("📊 Review the updated flow chart above, then click 'Start a new round' below.")
 
     # Show reset button below the chart when in show_result phase
     st.write("")
