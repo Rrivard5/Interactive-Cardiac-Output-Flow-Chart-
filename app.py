@@ -236,7 +236,6 @@ with col2:
             <h4>Venous return</h4>
             <div class='desc'>(volume of blood returning to heart alters stretch of heart wall or preload)</div>
             <div class='arrow-display'>{vr}</div>
-        </div>
         """,
         unsafe_allow_html=True
     )
@@ -253,6 +252,7 @@ with col2:
             st.session_state.pending_direction = -1
             st.session_state.phase = "predict"
             st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
 with col3:
     st.markdown(
@@ -272,7 +272,6 @@ with col4:
             <h4>Afterload</h4>
             <div class='desc'>(increased resistance in arteries)</div>
             <div class='arrow-display'>{al}</div>
-        </div>
         """,
         unsafe_allow_html=True
     )
@@ -289,11 +288,12 @@ with col4:
             st.session_state.pending_direction = -1
             st.session_state.phase = "predict"
             st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
 st.write("")
 
-# Row 2: Agent boxes under headers
-col1, col2, empty1, col3, col4, empty2 = st.columns([1, 1, 1, 1, 1, 1])
+# Row 2: Agent boxes under headers - FIXED ALIGNMENT
+col1, col2, col3, col4 = st.columns(4)
 
 with col1:
     st.markdown(
@@ -301,23 +301,23 @@ with col1:
         <div class='flow-box' style='background: #FFE8A3;'>
             <h4>Positive agents</h4>
             <div class='arrow-display'>{cp}</div>
-        </div>
         """,
         unsafe_allow_html=True
     )
     c1, c2 = st.columns(2)
     with c1:
-        if st.button("⬆️", key="chrono_pos_inc", use_container_width=True):
+        if st.button("⬆️ Inc", key="chrono_pos_inc", use_container_width=True):
             st.session_state.selected_node = "chrono_pos"
             st.session_state.pending_direction = 1
             st.session_state.phase = "predict"
             st.rerun()
     with c2:
-        if st.button("⬇️", key="chrono_pos_dec", use_container_width=True):
+        if st.button("⬇️ Dec", key="chrono_pos_dec", use_container_width=True):
             st.session_state.selected_node = "chrono_pos"
             st.session_state.pending_direction = -1
             st.session_state.phase = "predict"
             st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
 with col2:
     st.markdown(
@@ -325,23 +325,23 @@ with col2:
         <div class='flow-box' style='background: #FFE8A3;'>
             <h4>Negative agents</h4>
             <div class='arrow-display'>{cn}</div>
-        </div>
         """,
         unsafe_allow_html=True
     )
     c1, c2 = st.columns(2)
     with c1:
-        if st.button("⬆️", key="chrono_neg_inc", use_container_width=True):
+        if st.button("⬆️ Inc", key="chrono_neg_inc", use_container_width=True):
             st.session_state.selected_node = "chrono_neg"
             st.session_state.pending_direction = 1
             st.session_state.phase = "predict"
             st.rerun()
     with c2:
-        if st.button("⬇️", key="chrono_neg_dec", use_container_width=True):
+        if st.button("⬇️ Dec", key="chrono_neg_dec", use_container_width=True):
             st.session_state.selected_node = "chrono_neg"
             st.session_state.pending_direction = -1
             st.session_state.phase = "predict"
             st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
 with col3:
     st.markdown(
@@ -349,23 +349,23 @@ with col3:
         <div class='flow-box' style='background: #FFD6CC;'>
             <h4>Positive agents</h4>
             <div class='arrow-display'>{ip}</div>
-        </div>
         """,
         unsafe_allow_html=True
     )
     c1, c2 = st.columns(2)
     with c1:
-        if st.button("⬆️", key="ino_pos_inc", use_container_width=True):
+        if st.button("⬆️ Inc", key="ino_pos_inc", use_container_width=True):
             st.session_state.selected_node = "ino_pos"
             st.session_state.pending_direction = 1
             st.session_state.phase = "predict"
             st.rerun()
     with c2:
-        if st.button("⬇️", key="ino_pos_dec", use_container_width=True):
+        if st.button("⬇️ Dec", key="ino_pos_dec", use_container_width=True):
             st.session_state.selected_node = "ino_pos"
             st.session_state.pending_direction = -1
             st.session_state.phase = "predict"
             st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
 with col4:
     st.markdown(
@@ -373,23 +373,23 @@ with col4:
         <div class='flow-box' style='background: #FFD6CC;'>
             <h4>Negative agents</h4>
             <div class='arrow-display'>{inn}</div>
-        </div>
         """,
         unsafe_allow_html=True
     )
     c1, c2 = st.columns(2)
     with c1:
-        if st.button("⬆️", key="ino_neg_inc", use_container_width=True):
+        if st.button("⬆️ Inc", key="ino_neg_inc", use_container_width=True):
             st.session_state.selected_node = "ino_neg"
             st.session_state.pending_direction = 1
             st.session_state.phase = "predict"
             st.rerun()
     with c2:
-        if st.button("⬇️", key="ino_neg_dec", use_container_width=True):
+        if st.button("⬇️ Dec", key="ino_neg_dec", use_container_width=True):
             st.session_state.selected_node = "ino_neg"
             st.session_state.pending_direction = -1
             st.session_state.phase = "predict"
             st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # SVG arrows between rows
 st.markdown(
@@ -432,7 +432,6 @@ with col1:
             <h4>Heart rate</h4>
             <div class='desc'>(beats per minute)</div>
             <div class='arrow-display'>{HR_arrow}</div>
-        </div>
         """,
         unsafe_allow_html=True
     )
@@ -449,6 +448,7 @@ with col1:
             st.session_state.pending_direction = -1
             st.session_state.phase = "predict"
             st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
 with col2:
     st.markdown(
@@ -457,7 +457,6 @@ with col2:
             <h4>Stroke volume</h4>
             <div class='desc'>(blood pumped per beat)</div>
             <div class='arrow-display'>{SV_arrow}</div>
-        </div>
         """,
         unsafe_allow_html=True
     )
@@ -474,6 +473,7 @@ with col2:
             st.session_state.pending_direction = -1
             st.session_state.phase = "predict"
             st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # Final arrows to CO
 st.markdown(
