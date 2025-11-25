@@ -83,9 +83,11 @@ def compute_state():
     net_ino    = st.session_state.ino_pos_effect    - st.session_state.ino_neg_effect
     venous     = st.session_state.venous_return_effect
     afterload  = st.session_state.afterload_effect
+    hr_direct  = st.session_state.hr_direct_effect
+    sv_direct  = st.session_state.sv_direct_effect
 
-    hr = hr0 * (1 + HR_STEP * net_chrono)
-    sv = sv0 * (1 + SV_STEP * (net_ino + venous - afterload))
+    hr = hr0 * (1 + HR_STEP * (net_chrono + hr_direct))
+    sv = sv0 * (1 + SV_STEP * (net_ino + venous - afterload + sv_direct))
 
     hr = max(30, min(180, hr))
     sv = max(30, min(140, sv))
@@ -113,6 +115,8 @@ defaults = {
     "ino_neg_effect": 0,
     "venous_return_effect": 0,
     "afterload_effect": 0,
+    "hr_direct_effect": 0,
+    "sv_direct_effect": 0,
 
     "phase": "select_box",
     "selected_node": None,
@@ -233,7 +237,7 @@ clicked = agraph(nodes=nodes, edges=edges, config=config)
 # ---------------------------
 # Handle click → phase transitions
 # ---------------------------
-controllables = {"chrono_pos", "chrono_neg", "ino_pos", "ino_neg", "venous", "afterload"}
+controllables = {"chrono_pos", "chrono_neg", "ino_pos", "ino_neg", "venous", "afterload", "hr", "sv"}
 
 if st.session_state.phase == "select_box" and clicked in controllables:
     st.session_state.selected_node = clicked
@@ -250,6 +254,8 @@ if st.session_state.phase == "choose_dir" and st.session_state.selected_node:
         "ino_neg": "Negative inotropic agents",
         "venous": "Venous return (preload)",
         "afterload": "Afterload",
+        "hr": "Heart Rate (HR)",
+        "sv": "Stroke Volume (SV)",
     }
     node_title = title_map[node]
 
@@ -260,7 +266,7 @@ if st.session_state.phase == "choose_dir" and st.session_state.selected_node:
             st.write("")
             c1, c2 = st.columns(2)
             with c1:
-                if st.button("⬆️ Increase", use_container_width=True, type="primary"):
+                if st.button("⬆️ Increase", use_container_width=True):
                     st.session_state.pending_direction = 1
                     st.session_state.phase = "predict"
                     st.rerun()
@@ -276,7 +282,7 @@ if st.session_state.phase == "choose_dir" and st.session_state.selected_node:
         st.write("")
         c1, c2 = st.columns(2)
         with c1:
-            if st.button("⬆️ Increase", use_container_width=True, type="primary"):
+            if st.button("⬆️ Increase", use_container_width=True):
                 st.session_state.pending_direction = 1
                 st.session_state.phase = "predict"
                 st.rerun()
@@ -310,6 +316,8 @@ if st.session_state.phase == "predict" and st.session_state.selected_node:
                     "ino_neg": "ino_neg_effect",
                     "venous": "venous_return_effect",
                     "afterload": "afterload_effect",
+                    "hr": "hr_direct_effect",
+                    "sv": "sv_direct_effect",
                 }
                 eff_key = key_map[node]
                 st.session_state[eff_key] = st.session_state.pending_direction
@@ -341,6 +349,8 @@ if st.session_state.phase == "predict" and st.session_state.selected_node:
                 "ino_neg": "ino_neg_effect",
                 "venous": "venous_return_effect",
                 "afterload": "afterload_effect",
+                "hr": "hr_direct_effect",
+                "sv": "sv_direct_effect",
             }
             eff_key = key_map[node]
             st.session_state[eff_key] = st.session_state.pending_direction
@@ -409,6 +419,8 @@ if st.session_state.phase == "show_result":
         st.session_state.ino_neg_effect = 0
         st.session_state.venous_return_effect = 0
         st.session_state.afterload_effect = 0
+        st.session_state.hr_direct_effect = 0
+        st.session_state.sv_direct_effect = 0
 
         st.session_state.graph_version += 1
 
