@@ -374,37 +374,9 @@ if st.session_state.phase == "show_result":
             st.markdown("<div class='good'>✅ Your prediction was correct!</div>", unsafe_allow_html=True)
         else:
             st.markdown("<div class='bad'>❌ Your prediction was not correct.</div>", unsafe_allow_html=True)
-            st.write("")
-            st.selectbox(
-                "Where did you get confused?",
-                [
-                    "Chronotropic agents → HR",
-                    "Inotropic agents → SV",
-                    "Venous return (preload) → SV",
-                    "Afterload → SV (inverse)",
-                    "Combining HR and SV to get CO",
-                    "Not sure / other"
-                ],
-                index=None
-            )
 
         st.write("")
-        if st.button("🔄 Start a new round", type="primary", use_container_width=True):
-            # reset arrows
-            st.session_state.chrono_pos_effect = 0
-            st.session_state.chrono_neg_effect = 0
-            st.session_state.ino_pos_effect = 0
-            st.session_state.ino_neg_effect = 0
-            st.session_state.venous_return_effect = 0
-            st.session_state.afterload_effect = 0
-
-            st.session_state.graph_version += 1
-
-            st.session_state.phase = "select_box"
-            st.session_state.selected_node = None
-            st.session_state.pending_direction = None
-            st.session_state.prediction = None
-            st.rerun()
+        st.info("📊 Close this dialog to see the updated flow chart, then click 'Start a new round' below the chart.")
     
     if have_dialog():
         show_result_dialog()
@@ -423,37 +395,28 @@ if st.session_state.phase == "show_result":
             st.markdown("<div class='good'>✅ Your prediction was correct!</div>", unsafe_allow_html=True)
         else:
             st.markdown("<div class='bad'>❌ Your prediction was not correct.</div>", unsafe_allow_html=True)
-            st.write("")
-            st.selectbox(
-                "Where did you get confused?",
-                [
-                    "Chronotropic agents → HR",
-                    "Inotropic agents → SV",
-                    "Venous return (preload) → SV",
-                    "Afterload → SV (inverse)",
-                    "Combining HR and SV to get CO",
-                    "Not sure / other"
-                ],
-                index=None
-            )
 
         st.write("")
-        if st.button("🔄 Start a new round", type="primary", use_container_width=True):
-            # reset arrows
-            st.session_state.chrono_pos_effect = 0
-            st.session_state.chrono_neg_effect = 0
-            st.session_state.ino_pos_effect = 0
-            st.session_state.ino_neg_effect = 0
-            st.session_state.venous_return_effect = 0
-            st.session_state.afterload_effect = 0
+        st.info("📊 Review the updated flow chart above, then click 'Start a new round' below.")
 
-            st.session_state.graph_version += 1
+    # Show reset button below the chart when in show_result phase
+    st.write("")
+    if st.button("🔄 Start a new round", type="primary", use_container_width=True):
+        # reset arrows
+        st.session_state.chrono_pos_effect = 0
+        st.session_state.chrono_neg_effect = 0
+        st.session_state.ino_pos_effect = 0
+        st.session_state.ino_neg_effect = 0
+        st.session_state.venous_return_effect = 0
+        st.session_state.afterload_effect = 0
 
-            st.session_state.phase = "select_box"
-            st.session_state.selected_node = None
-            st.session_state.pending_direction = None
-            st.session_state.prediction = None
-            st.rerun()
+        st.session_state.graph_version += 1
+
+        st.session_state.phase = "select_box"
+        st.session_state.selected_node = None
+        st.session_state.pending_direction = None
+        st.session_state.prediction = None
+        st.rerun()
 
 st.write("")
 st.caption("📝 Arrows show direction of change only. CO = HR × SV (simplified learning model).")
