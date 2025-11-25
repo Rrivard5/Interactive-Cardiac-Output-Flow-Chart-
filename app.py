@@ -56,15 +56,6 @@ st.markdown(
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
       }
-      
-      /* Make the graph container more prominent */
-      .graph-container {
-        border: 2px solid #e0e0e0;
-        border-radius: 12px;
-        padding: 20px;
-        background: #ffffff;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      }
     </style>
     """,
     unsafe_allow_html=True,
@@ -162,9 +153,6 @@ CO_arrow = effect_arrow(co_dir)
 # LEFT: flow chart
 # ---------------------------
 with left:
-    st.markdown("### 📊 Interactive Flow Chart")
-    st.markdown("<div class='graph-container'>", unsafe_allow_html=True)
-
     cp  = effect_arrow(st.session_state.chrono_pos_effect)
     cn  = effect_arrow(st.session_state.chrono_neg_effect)
     ip  = effect_arrow(st.session_state.ino_pos_effect)
@@ -172,38 +160,38 @@ with left:
     vr  = effect_arrow(st.session_state.venous_return_effect)
     al  = effect_arrow(st.session_state.afterload_effect)
 
-    # Adjusted node positions for better centering
+    # Compact node positions - everything closer together
     nodes = [
         Node(id="chrono_header",
              label="Chronotropic agents\n(alter SA node and\nAV node activity)",
-             x=200,   y=100, size=1200, color="#EFE7E5", shape="box", font={"size": 22}),
+             x=0,   y=0, size=1200, color="#EFE7E5", shape="box", font={"size": 20}),
         Node(id="venous",
              label=f"Venous return\n(preload)\n{vr}",
-             x=520, y=100, size=1100, color="#FFF6C8", shape="box", font={"size": 22}),
+             x=280, y=0, size=1100, color="#FFF6C8", shape="box", font={"size": 20}),
         Node(id="ino_header",
              label="Inotropic agents\n(alter contractility)",
-             x=840, y=100, size=1200, color="#FFF0EC", shape="box", font={"size": 22}),
+             x=560, y=0, size=1200, color="#FFF0EC", shape="box", font={"size": 20}),
         Node(id="afterload",
              label=f"Afterload\n{al}",
-             x=1160, y=100, size=1100, color="#E1E8FF", shape="box", font={"size": 22}),
+             x=860, y=0, size=1100, color="#E1E8FF", shape="box", font={"size": 20}),
 
         Node(id="chrono_pos", label=f"Positive agents\n{cp}",
-             x=80, y=300, size=950, color="#FFE8A3", shape="box", font={"size": 20}),
+             x=-120, y=170, size=900, color="#FFE8A3", shape="box", font={"size": 18}),
         Node(id="chrono_neg", label=f"Negative agents\n{cn}",
-             x=320,  y=300, size=950, color="#FFE8A3", shape="box", font={"size": 20}),
+             x=120,  y=170, size=900, color="#FFE8A3", shape="box", font={"size": 18}),
 
         Node(id="ino_pos", label=f"Positive agents\n{ip}",
-             x=760, y=300, size=950, color="#FFD6CC", shape="box", font={"size": 20}),
+             x=500, y=170, size=900, color="#FFD6CC", shape="box", font={"size": 18}),
         Node(id="ino_neg", label=f"Negative agents\n{inn}",
-             x=920, y=300, size=950, color="#FFD6CC", shape="box", font={"size": 20}),
+             x=640, y=170, size=900, color="#FFD6CC", shape="box", font={"size": 18}),
 
         Node(id="hr", label=f"Heart rate (HR)\n{HR_arrow}",
-             x=200,   y=520, size=1350, color="#E8F5E9", shape="box", font={"size": 24, "bold": True}),
+             x=0,   y=380, size=1300, color="#FFFFFF", shape="box", font={"size": 22}),
         Node(id="sv", label=f"Stroke volume (SV)\n{SV_arrow}",
-             x=840, y=520, size=1350, color="#FFF3E0", shape="box", font={"size": 24, "bold": True}),
+             x=560, y=380, size=1300, color="#FFFFFF", shape="box", font={"size": 22}),
 
         Node(id="co", label=f"Cardiac output (CO)\n{CO_arrow}",
-             x=520, y=720, size=1500, color="#F3D6DA", shape="box", font={"size": 26, "bold": True}),
+             x=280, y=585, size=1400, color="#F3D6DA", shape="box", font={"size": 22}),
     ]
 
     # Invisible redraw node
@@ -220,36 +208,32 @@ with left:
     )
 
     edges = [
-        Edge(source="chrono_pos", target="hr", color="#666"),
-        Edge(source="chrono_neg", target="hr", color="#666"),
-        Edge(source="venous", target="sv", color="#666"),
-        Edge(source="ino_pos", target="sv", color="#666"),
-        Edge(source="ino_neg", target="sv", color="#666"),
-        Edge(source="afterload", target="sv", color="#666"),
-        Edge(source="hr", target="co", color="#333"),
-        Edge(source="sv", target="co", color="#333"),
+        Edge(source="chrono_pos", target="hr"),
+        Edge(source="chrono_neg", target="hr"),
+        Edge(source="venous", target="sv"),
+        Edge(source="ino_pos", target="sv"),
+        Edge(source="ino_neg", target="sv"),
+        Edge(source="afterload", target="sv"),
+        Edge(source="hr", target="co"),
+        Edge(source="sv", target="co"),
     ]
 
     config = Config(
         width="100%",
-        height=820,
+        height=720,
         directed=True,
         physics=False,
-        staticGraph=True,
+        staticGraph=False,
         nodeHighlightBehavior=True,
+        fit=True,
         interaction={
             "dragNodes": False,
             "dragView": True,
             "zoomView": True
-        },
-        # Center the graph on the main flow
-        initialZoom=1.0,
-        minZoom=0.5,
-        maxZoom=2.0,
+        }
     )
 
     clicked = agraph(nodes=nodes, edges=edges, config=config)
-    st.markdown("</div>", unsafe_allow_html=True)
 
 # ---------------------------
 # AFTER graph: handle click → phase transitions
