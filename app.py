@@ -56,6 +56,16 @@ st.markdown(
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
       }
+      
+      /* Force zoom on the graph */
+      .streamlit-agraph svg {
+        transform: scale(2.0) !important;
+        transform-origin: center center !important;
+      }
+      
+      .streamlit-agraph {
+        overflow: visible !important;
+      }
     </style>
     """,
     unsafe_allow_html=True,
