@@ -220,13 +220,11 @@ config = Config(
     height=720,
     directed=True,
     physics=False,
-    staticGraph=False,
     nodeHighlightBehavior=True,
-    fit=True,
     interaction={
         "dragNodes": False,
-        "dragView": True,
-        "zoomView": True
+        "dragView": False,
+        "zoomView": False
     }
 )
 
@@ -360,51 +358,102 @@ if st.session_state.phase == "predict" and st.session_state.selected_node:
 
 # ---- PHASE: show_result ----
 if st.session_state.phase == "show_result":
-    st.markdown(
-        f"""
-        <div class="node-card">
-          <div style="margin-bottom: 10px;"><b>Your prediction:</b> {st.session_state.prediction}</div>
-          <div><b>Correct CO change:</b> {st.session_state.last_feedback}</div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-    if st.session_state.last_correct:
-        st.markdown("<div class='good'>✅ Your prediction was correct!</div>", unsafe_allow_html=True)
-    else:
-        st.markdown("<div class='bad'>❌ Your prediction was not correct.</div>", unsafe_allow_html=True)
-        st.write("")
-        st.selectbox(
-            "Where did you get confused?",
-            [
-                "Chronotropic agents → HR",
-                "Inotropic agents → SV",
-                "Venous return (preload) → SV",
-                "Afterload → SV (inverse)",
-                "Combining HR and SV to get CO",
-                "Not sure / other"
-            ],
-            index=None
+    @st.dialog("Results")
+    def show_result_dialog():
+        st.markdown(
+            f"""
+            <div class="node-card">
+              <div style="margin-bottom: 10px;"><b>Your prediction:</b> {st.session_state.prediction}</div>
+              <div><b>Correct CO change:</b> {st.session_state.last_feedback}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
         )
 
-    st.write("")
-    if st.button("🔄 Start a new round", type="primary", use_container_width=True):
-        # reset arrows
-        st.session_state.chrono_pos_effect = 0
-        st.session_state.chrono_neg_effect = 0
-        st.session_state.ino_pos_effect = 0
-        st.session_state.ino_neg_effect = 0
-        st.session_state.venous_return_effect = 0
-        st.session_state.afterload_effect = 0
+        if st.session_state.last_correct:
+            st.markdown("<div class='good'>✅ Your prediction was correct!</div>", unsafe_allow_html=True)
+        else:
+            st.markdown("<div class='bad'>❌ Your prediction was not correct.</div>", unsafe_allow_html=True)
+            st.write("")
+            st.selectbox(
+                "Where did you get confused?",
+                [
+                    "Chronotropic agents → HR",
+                    "Inotropic agents → SV",
+                    "Venous return (preload) → SV",
+                    "Afterload → SV (inverse)",
+                    "Combining HR and SV to get CO",
+                    "Not sure / other"
+                ],
+                index=None
+            )
 
-        st.session_state.graph_version += 1
+        st.write("")
+        if st.button("🔄 Start a new round", type="primary", use_container_width=True):
+            # reset arrows
+            st.session_state.chrono_pos_effect = 0
+            st.session_state.chrono_neg_effect = 0
+            st.session_state.ino_pos_effect = 0
+            st.session_state.ino_neg_effect = 0
+            st.session_state.venous_return_effect = 0
+            st.session_state.afterload_effect = 0
 
-        st.session_state.phase = "select_box"
-        st.session_state.selected_node = None
-        st.session_state.pending_direction = None
-        st.session_state.prediction = None
-        st.rerun()
+            st.session_state.graph_version += 1
+
+            st.session_state.phase = "select_box"
+            st.session_state.selected_node = None
+            st.session_state.pending_direction = None
+            st.session_state.prediction = None
+            st.rerun()
+    
+    if have_dialog():
+        show_result_dialog()
+    else:
+        st.markdown(
+            f"""
+            <div class="node-card">
+              <div style="margin-bottom: 10px;"><b>Your prediction:</b> {st.session_state.prediction}</div>
+              <div><b>Correct CO change:</b> {st.session_state.last_feedback}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        if st.session_state.last_correct:
+            st.markdown("<div class='good'>✅ Your prediction was correct!</div>", unsafe_allow_html=True)
+        else:
+            st.markdown("<div class='bad'>❌ Your prediction was not correct.</div>", unsafe_allow_html=True)
+            st.write("")
+            st.selectbox(
+                "Where did you get confused?",
+                [
+                    "Chronotropic agents → HR",
+                    "Inotropic agents → SV",
+                    "Venous return (preload) → SV",
+                    "Afterload → SV (inverse)",
+                    "Combining HR and SV to get CO",
+                    "Not sure / other"
+                ],
+                index=None
+            )
+
+        st.write("")
+        if st.button("🔄 Start a new round", type="primary", use_container_width=True):
+            # reset arrows
+            st.session_state.chrono_pos_effect = 0
+            st.session_state.chrono_neg_effect = 0
+            st.session_state.ino_pos_effect = 0
+            st.session_state.ino_neg_effect = 0
+            st.session_state.venous_return_effect = 0
+            st.session_state.afterload_effect = 0
+
+            st.session_state.graph_version += 1
+
+            st.session_state.phase = "select_box"
+            st.session_state.selected_node = None
+            st.session_state.pending_direction = None
+            st.session_state.prediction = None
+            st.rerun()
 
 st.write("")
 st.caption("📝 Arrows show direction of change only. CO = HR × SV (simplified learning model).")
