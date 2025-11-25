@@ -161,38 +161,38 @@ inn = effect_arrow(st.session_state.ino_neg_effect)
 vr  = effect_arrow(st.session_state.venous_return_effect)
 al  = effect_arrow(st.session_state.afterload_effect)
 
-# Compact node positions - centered for better initial view
+# Repositioned nodes - trying different coordinates to improve initial zoom
 nodes = [
     Node(id="chrono_header",
          label="Chronotropic agents\n(alter SA node and\nAV node activity)",
-         x=300,   y=200, size=1800, color="#EFE7E5", shape="box", font={"size": 20}),
+         x=100,   y=100, size=1800, color="#EFE7E5", shape="box", font={"size": 20}),
     Node(id="venous",
          label=f"Venous return\n(preload)\n{vr}",
-         x=580, y=200, size=1650, color="#FFF6C8", shape="box", font={"size": 20}),
+         x=380, y=100, size=1650, color="#FFF6C8", shape="box", font={"size": 20}),
     Node(id="ino_header",
          label="Inotropic agents\n(alter contractility)",
-         x=860, y=200, size=1800, color="#FFF0EC", shape="box", font={"size": 20}),
+         x=660, y=100, size=1800, color="#FFF0EC", shape="box", font={"size": 20}),
     Node(id="afterload",
          label=f"Afterload\n{al}",
-         x=1160, y=200, size=1650, color="#E1E8FF", shape="box", font={"size": 20}),
+         x=960, y=100, size=1650, color="#E1E8FF", shape="box", font={"size": 20}),
 
     Node(id="chrono_pos", label=f"Positive agents\n{cp}",
-         x=180, y=370, size=1350, color="#FFE8A3", shape="box", font={"size": 18}),
+         x=-20, y=270, size=1350, color="#FFE8A3", shape="box", font={"size": 18}),
     Node(id="chrono_neg", label=f"Negative agents\n{cn}",
-         x=420,  y=370, size=1350, color="#FFE8A3", shape="box", font={"size": 18}),
+         x=220,  y=270, size=1350, color="#FFE8A3", shape="box", font={"size": 18}),
 
     Node(id="ino_pos", label=f"Positive agents\n{ip}",
-         x=800, y=370, size=1350, color="#FFD6CC", shape="box", font={"size": 18}),
+         x=600, y=270, size=1350, color="#FFD6CC", shape="box", font={"size": 18}),
     Node(id="ino_neg", label=f"Negative agents\n{inn}",
-         x=940, y=370, size=1350, color="#FFD6CC", shape="box", font={"size": 18}),
+         x=740, y=270, size=1350, color="#FFD6CC", shape="box", font={"size": 18}),
 
     Node(id="hr", label=f"Heart rate (HR)\n{HR_arrow}",
-         x=300,   y=580, size=1950, color="#FFFFFF", shape="box", font={"size": 22}),
+         x=100,   y=480, size=1950, color="#FFFFFF", shape="box", font={"size": 22}),
     Node(id="sv", label=f"Stroke volume (SV)\n{SV_arrow}",
-         x=860, y=580, size=1950, color="#FFFFFF", shape="box", font={"size": 22}),
+         x=660, y=480, size=1950, color="#FFFFFF", shape="box", font={"size": 22}),
 
     Node(id="co", label=f"Cardiac output (CO)\n{CO_arrow}",
-         x=580, y=785, size=2100, color="#F3D6DA", shape="box", font={"size": 22}),
+         x=380, y=685, size=2100, color="#F3D6DA", shape="box", font={"size": 22}),
 ]
 
 # Invisible redraw node
