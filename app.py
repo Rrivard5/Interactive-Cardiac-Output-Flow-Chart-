@@ -262,15 +262,21 @@ def compute_state_advanced():
     sv0 = st.session_state.sv_baseline
     STEP = 0.12
     
-    # Get direct stimulus
+    # Get stimuli
     exercise = st.session_state.exercise_effect
+    bp = st.session_state.bp_effect  # Negative BP increases sympathetic, decreases parasympathetic
     
     # Exercise affects both pathways
-    # Pathway 1: Exercise -> Venous Return -> EDV -> SV
-    # Pathway 2: Exercise -> Sympathetic -> HR
+    # BP affects sympathetic/parasympathetic (decreased BP -> increased sympathetic, decreased parasympathetic)
+    sympathetic_effect = exercise - bp  # Decreased BP (negative) adds to sympathetic
+    parasympathetic_effect = bp  # Decreased BP (negative) decreases parasympathetic (less slowing)
     
-    hr = hr0 * (1 + STEP * exercise)  # Exercise increases HR
-    sv = sv0 * (1 + STEP * exercise)  # Exercise increases SV (via venous return -> EDV)
+    # HR: increased by sympathetic, decreased by parasympathetic
+    # So: sympathetic up -> HR up, parasympathetic down -> HR up
+    hr_effect = sympathetic_effect - parasympathetic_effect
+    
+    hr = hr0 * (1 + STEP * hr_effect)
+    sv = sv0 * (1 + STEP * exercise)  # SV still only from exercise via venous return -> EDV
     
     hr = max(30, min(180, hr))
     sv = max(30, min(140, sv))
@@ -306,6 +312,7 @@ defaults = {
     "sv_direct_effect": 0,
     # Advanced mode effects
     "exercise_effect": 0,
+    "bp_effect": 0,
     # Phase tracking
     "phase": "select_box",
     "selected_node": None,
@@ -599,14 +606,19 @@ else:
     
     # Compute state
     exercise = st.session_state.exercise_effect
+    bp = st.session_state.bp_effect
     exercise_arr = effect_arrow(exercise)
+    bp_arr = effect_arrow(bp)
     
-    # Derived values (all flow from exercise)
+    # Derived values
     venous_return = exercise
     edv = venous_return
-    sympathetic = exercise
-    # Ventricular filling is inverse of HR (if HR up, less time to fill)
-    ventricular_filling = -sympathetic
+    # Sympathetic: increased by exercise, increased by decreased BP
+    sympathetic = exercise - bp  # If BP decreases (negative), sympathetic increases
+    # Parasympathetic: decreased by decreased BP
+    parasympathetic = bp  # If BP decreases (negative), parasympathetic decreases
+    # Ventricular filling is inverse of HR
+    ventricular_filling = -(sympathetic - parasympathetic)
     
     hr, sv, co = compute_state_advanced()
     hr_dir = direction_vs_baseline(hr, st.session_state.hr_baseline)
@@ -619,13 +631,14 @@ else:
     venous_arr = effect_arrow(venous_return)
     edv_arr = effect_arrow(edv)
     sympathetic_arr = effect_arrow(sympathetic)
+    parasympathetic_arr = effect_arrow(parasympathetic)
     filling_arr = effect_arrow(ventricular_filling)
 
     # ===== ROW 1: STIMULUS =====
     st.markdown("<div class='section-header'>Initial Stimulus</div>", unsafe_allow_html=True)
     
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
+    col1, col2 = st.columns(2)
+    with col1:
         st.markdown(
             f"""
             <div class='stimulus-box'>
@@ -640,6 +653,30 @@ else:
             st.session_state.pending_direction = 1
             st.session_state.phase = "predict"
             st.rerun()
+    
+    with col2:
+        st.markdown(
+            f"""
+            <div class='stimulus-box'>
+                <h5>Blood Pressure</h5>
+                <div class='arrow-display-small'>{bp_arr}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("⬆️ Increase BP", key="bp_inc", use_container_width=True, disabled=disabled):
+                st.session_state.selected_node = "bp"
+                st.session_state.pending_direction = 1
+                st.session_state.phase = "predict"
+                st.rerun()
+        with c2:
+            if st.button("⬇️ Decrease BP", key="bp_dec", use_container_width=True, disabled=disabled):
+                st.session_state.selected_node = "bp"
+                st.session_state.pending_direction = -1
+                st.session_state.phase = "predict"
+                st.rerun()
 
     # Branching arrows
     st.markdown(
@@ -653,15 +690,27 @@ else:
     )
 
     # For boxes that show arrows only after stimulus is selected
-    show_arrows = exercise != 0
+    show_arrows = exercise != 0 or st.session_state.get("bp_effect", 0) != 0
     
-    venous_display = venous_arr if show_arrows else "—"
-    edv_display = edv_arr if show_arrows else "—"
-    sympathetic_display = sympathetic_arr if show_arrows else "—"
-    HR_display = HR_arrow if show_arrows else "—"
-    filling_display = filling_arr if show_arrows else "—"
-    SV_display = SV_arrow if show_arrows else "—"
-    CO_display = CO_arrow if show_arrows else "—"
+    venous_display = venous_arr if show_arrows else ""
+    edv_display = edv_arr if show_arrows else ""
+    sympathetic_display = sympathetic_arr if show_arrows else ""
+    parasympathetic_display = effect_arrow(-st.session_state.get("bp_effect", 0)) if show_arrows else ""
+    HR_display = HR_arrow if show_arrows else ""
+    filling_display = filling_arr if show_arrows else ""
+    SV_display = SV_arrow if show_arrows else ""
+    CO_display = CO_arrow if show_arrows else ""
+
+    # Dynamic titles - remove arrows when no stimulus
+    venous_title = "↑ Venous return" if venous_return > 0 else ("↓ Venous return" if venous_return < 0 else "Venous return")
+    edv_title = "↑ EDV (preload)" if edv > 0 else ("↓ EDV (preload)" if edv < 0 else "EDV (preload)")
+    sympathetic_title = "↑ Sympathetic activity" if sympathetic > 0 else ("↓ Sympathetic activity" if sympathetic < 0 else "Sympathetic activity")
+    parasympathetic_val = -st.session_state.get("bp_effect", 0)
+    parasympathetic_title = "↑ Parasympathetic activity" if parasympathetic_val > 0 else ("↓ Parasympathetic activity" if parasympathetic_val < 0 else "Parasympathetic activity")
+    hr_title = "↑ Heart Rate" if hr_dir > 0 else ("↓ Heart Rate" if hr_dir < 0 else "Heart Rate")
+    filling_title = "↑ Ventricular filling time" if ventricular_filling > 0 else ("↓ Ventricular filling time" if ventricular_filling < 0 else "Ventricular filling time")
+    sv_title = "↑ Stroke Volume (SV)" if sv_dir > 0 else ("↓ Stroke Volume (SV)" if sv_dir < 0 else "Stroke Volume (SV)")
+    co_title = "↑ Cardiac Output (CO = SV × HR)" if co_dir > 0 else ("↓ Cardiac Output (CO = SV × HR)" if co_dir < 0 else "Cardiac Output (CO = SV × HR)")
 
     # ===== ROW 2: FIRST RESPONSES =====
     st.markdown("<div class='section-header'>Physiological Responses</div>", unsafe_allow_html=True)
@@ -672,7 +721,7 @@ else:
         st.markdown(
             f"""
             <div class='response-box'>
-                <h5>↑ Venous return</h5>
+                <h5>{venous_title}</h5>
                 <div style='font-size:0.75rem;color:#555;'>(blood returning to heart)</div>
                 <div class='arrow-display-small'>{venous_display}</div>
             </div>
@@ -683,7 +732,7 @@ else:
         st.markdown(
             f"""
             <div class='response-box'>
-                <h5>↑ EDV (preload)</h5>
+                <h5>{edv_title}</h5>
                 <div style='font-size:0.75rem;color:#555;'>(amount of blood in ventricle before contraction)</div>
                 <div class='arrow-display-small'>{edv_display}</div>
             </div>
@@ -693,20 +742,33 @@ else:
         st.markdown("<div class='arrow-down'>↓</div>", unsafe_allow_html=True)
     
     with col2:
-        st.markdown(
-            f"""
-            <div class='response-box'>
-                <h5>↑ Sympathetic activity</h5>
-                <div class='arrow-display-small'>{sympathetic_display}</div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+        # Two sub-columns for sympathetic and parasympathetic
+        sub1, sub2 = st.columns(2)
+        with sub1:
+            st.markdown(
+                f"""
+                <div class='response-box'>
+                    <h5>{sympathetic_title}</h5>
+                    <div class='arrow-display-small'>{sympathetic_display}</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        with sub2:
+            st.markdown(
+                f"""
+                <div class='response-box'>
+                    <h5>{parasympathetic_title}</h5>
+                    <div class='arrow-display-small'>{parasympathetic_display}</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
         st.markdown("<div class='arrow-down'>↓</div>", unsafe_allow_html=True)
         st.markdown(
             f"""
             <div class='response-box'>
-                <h5>↑ Heart Rate</h5>
+                <h5>{hr_title}</h5>
                 <div style='font-size:0.75rem;color:#555;'>(beats per minute)</div>
                 <div class='arrow-display-small'>{HR_display}</div>
             </div>
@@ -717,7 +779,7 @@ else:
         st.markdown(
             f"""
             <div class='response-box'>
-                <h5>↓ Ventricular filling time</h5>
+                <h5>{filling_title}</h5>
                 <div class='arrow-display-small'>{filling_display}</div>
             </div>
             """,
@@ -731,7 +793,7 @@ else:
         st.markdown(
             f"""
             <div class='result-box'>
-                <h4>↑ Stroke Volume (SV)</h4>
+                <h4>{sv_title}</h4>
                 <div style='font-size:0.8rem;color:#555;'>(blood pumped per beat)</div>
                 <div class='arrow-display'>{SV_display}</div>
             </div>
@@ -757,7 +819,7 @@ else:
     st.markdown(
         f"""
         <div class='co-box'>
-            <h4>↑ Cardiac Output (CO = SV × HR)</h4>
+            <h4>{co_title}</h4>
             <div style='font-size:0.85rem;color:#555;'>(blood pumped per minute)</div>
             <div class='arrow-display'>{CO_display}</div>
         </div>
@@ -765,8 +827,11 @@ else:
         unsafe_allow_html=True
     )
 
-    key_map = {"exercise": "exercise_effect"}
-    reset_keys = ["exercise_effect"]
+    key_map = {
+        "exercise": "exercise_effect",
+        "bp": "bp_effect",
+    }
+    reset_keys = ["exercise_effect", "bp_effect"]
     compute_fn = compute_state_advanced
 
 # ---------------------------
