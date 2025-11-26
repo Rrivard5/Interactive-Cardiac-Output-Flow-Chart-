@@ -171,12 +171,11 @@ st.markdown(
         font-size: 0.85rem;
         font-weight: 600;
       }
-      /* Advanced mode styles */
       .stimulus-box {
-        border: 2px solid #c44569;
+        border: 2px solid #333;
         border-radius: 8px;
         padding: 10px;
-        background: #FFD6E0;
+        background: #FFF8DC;
         text-align: center;
         min-height: 80px;
       }
@@ -192,10 +191,10 @@ st.markdown(
         margin: 0;
       }
       .response-box {
-        border: 2px solid #2d6a4f;
+        border: 2px solid #333;
         border-radius: 8px;
         padding: 10px;
-        background: #D8F3DC;
+        background: #FFF8DC;
         text-align: center;
       }
       .response-box h5 {
@@ -208,7 +207,7 @@ st.markdown(
         border: 2px solid #333;
         border-radius: 8px;
         padding: 15px;
-        background: #FFEAA7;
+        background: #FFF8DC;
         text-align: center;
       }
       .result-box h4 {
@@ -596,19 +595,7 @@ else:
         unsafe_allow_html=True
     )
     
-    # Legend
-    st.markdown(
-        """
-        <div style="margin-bottom: 15px; font-size: 0.85rem;">
-            <span style="display:inline-block; width:16px; height:16px; background:#FFD6E0; border:1px solid #c44569; border-radius:3px; vertical-align:middle; margin-right:5px;"></span> Initial stimulus
-            &nbsp;&nbsp;
-            <span style="display:inline-block; width:16px; height:16px; background:#D8F3DC; border:1px solid #2d6a4f; border-radius:3px; vertical-align:middle; margin-right:5px;"></span> Physiological response
-            &nbsp;&nbsp;
-            <span style="display:inline-block; width:16px; height:16px; background:#FFEAA7; border:1px solid #b8860b; border-radius:3px; vertical-align:middle; margin-right:5px;"></span> Result
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    # Legend removed - using consistent box styling instead
     
     # Compute state
     exercise = st.session_state.exercise_effect
@@ -618,6 +605,8 @@ else:
     venous_return = exercise
     edv = venous_return
     sympathetic = exercise
+    # Ventricular filling is inverse of HR (if HR up, less time to fill)
+    ventricular_filling = -sympathetic
     
     hr, sv, co = compute_state_advanced()
     hr_dir = direction_vs_baseline(hr, st.session_state.hr_baseline)
@@ -630,6 +619,7 @@ else:
     venous_arr = effect_arrow(venous_return)
     edv_arr = effect_arrow(edv)
     sympathetic_arr = effect_arrow(sympathetic)
+    filling_arr = effect_arrow(ventricular_filling)
 
     # ===== ROW 1: STIMULUS =====
     st.markdown("<div class='section-header'>Initial Stimulus</div>", unsafe_allow_html=True)
@@ -667,10 +657,6 @@ else:
             <span style="margin-right: 80px;">↙</span>
             <span style="margin-left: 80px;">↘</span>
         </div>
-        <div style="text-align: center; font-size: 0.8rem; color: #666; margin-bottom: 10px;">
-            <span style="margin-right: 60px;"><i>Pathway 1: Stroke Volume</i></span>
-            <span style="margin-left: 60px;"><i>Pathway 2: Heart Rate</i></span>
-        </div>
         """,
         unsafe_allow_html=True
     )
@@ -702,6 +688,7 @@ else:
             """,
             unsafe_allow_html=True
         )
+        st.markdown("<div class='arrow-down'>↓</div>", unsafe_allow_html=True)
     
     with col2:
         st.markdown(
@@ -714,13 +701,30 @@ else:
             """,
             unsafe_allow_html=True
         )
-
-    # Arrows down
-    st.markdown("<div class='arrow-down'>↓</div>", unsafe_allow_html=True)
+        st.markdown("<div class='arrow-down'>↓</div>", unsafe_allow_html=True)
+        st.markdown(
+            f"""
+            <div class='response-box'>
+                <h5>↑ Heart Rate</h5>
+                <div style='font-size:0.75rem;color:#555;'>(beats per minute)</div>
+                <div class='arrow-display-small'>{HR_arrow}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        st.markdown("<div class='arrow-down'>↓</div>", unsafe_allow_html=True)
+        st.markdown(
+            f"""
+            <div class='response-box'>
+                <h5>↓ Ventricular filling time</h5>
+                <div style='font-size:0.75rem;color:#555;'>(less time to fill between beats)</div>
+                <div class='arrow-display-small'>{filling_arr}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
     # ===== ROW 3: RESULTS - SV and HR =====
-    st.markdown("<div class='section-header'>Results</div>", unsafe_allow_html=True)
-    
     col1, col2 = st.columns(2)
     
     with col1:
@@ -736,16 +740,7 @@ else:
         )
     
     with col2:
-        st.markdown(
-            f"""
-            <div class='result-box'>
-                <h4>↑ Heart Rate (HR)</h4>
-                <div style='font-size:0.8rem;color:#555;'>(beats per minute)</div>
-                <div class='arrow-display'>{HR_arrow}</div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+        st.write("")  # Empty - HR is now in the chain above
 
     # Converging arrows
     st.markdown(
