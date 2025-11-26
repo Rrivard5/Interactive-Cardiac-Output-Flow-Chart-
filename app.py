@@ -344,25 +344,25 @@ with col1:
     )
     sub1, sub2 = st.columns(2)
     with sub1:
-        st.markdown(f"<div class='inner-agent-box'><h5>Positive agents</h5><div class='arrow-display'>{cp}</div></div>", unsafe_allow_html=True)
-        if st.button("⬆️ Increase", key="chrono_pos_inc", use_container_width=True, disabled=disabled):
+        st.markdown(f"<div class='inner-agent-box'><h5>Positive agents</h5><div style='font-size:0.75rem;color:#666;'>Amount:</div><div class='arrow-display'>{cp}</div></div>", unsafe_allow_html=True)
+        if st.button("⬆️ Add more", key="chrono_pos_inc", use_container_width=True, disabled=disabled):
             st.session_state.selected_node = "chrono_pos"
             st.session_state.pending_direction = 1
             st.session_state.phase = "predict"
             st.rerun()
-        if st.button("⬇️ Decrease", key="chrono_pos_dec", use_container_width=True, disabled=disabled):
+        if st.button("⬇️ Add less", key="chrono_pos_dec", use_container_width=True, disabled=disabled):
             st.session_state.selected_node = "chrono_pos"
             st.session_state.pending_direction = -1
             st.session_state.phase = "predict"
             st.rerun()
     with sub2:
-        st.markdown(f"<div class='inner-agent-box'><h5>Negative agents</h5><div class='arrow-display'>{cn}</div></div>", unsafe_allow_html=True)
-        if st.button("⬆️ Increase", key="chrono_neg_inc", use_container_width=True, disabled=disabled):
+        st.markdown(f"<div class='inner-agent-box'><h5>Negative agents</h5><div style='font-size:0.75rem;color:#666;'>Amount:</div><div class='arrow-display'>{cn}</div></div>", unsafe_allow_html=True)
+        if st.button("⬆️ Add more", key="chrono_neg_inc", use_container_width=True, disabled=disabled):
             st.session_state.selected_node = "chrono_neg"
             st.session_state.pending_direction = 1
             st.session_state.phase = "predict"
             st.rerun()
-        if st.button("⬇️ Decrease", key="chrono_neg_dec", use_container_width=True, disabled=disabled):
+        if st.button("⬇️ Add less", key="chrono_neg_dec", use_container_width=True, disabled=disabled):
             st.session_state.selected_node = "chrono_neg"
             st.session_state.pending_direction = -1
             st.session_state.phase = "predict"
@@ -409,25 +409,25 @@ with col3:
     )
     sub1, sub2 = st.columns(2)
     with sub1:
-        st.markdown(f"<div class='inner-agent-box'><h5>Positive agents</h5><div class='arrow-display'>{ip}</div></div>", unsafe_allow_html=True)
-        if st.button("⬆️ Increase", key="ino_pos_inc", use_container_width=True, disabled=disabled):
+        st.markdown(f"<div class='inner-agent-box'><h5>Positive agents</h5><div style='font-size:0.75rem;color:#666;'>Amount:</div><div class='arrow-display'>{ip}</div></div>", unsafe_allow_html=True)
+        if st.button("⬆️ Add more", key="ino_pos_inc", use_container_width=True, disabled=disabled):
             st.session_state.selected_node = "ino_pos"
             st.session_state.pending_direction = 1
             st.session_state.phase = "predict"
             st.rerun()
-        if st.button("⬇️ Decrease", key="ino_pos_dec", use_container_width=True, disabled=disabled):
+        if st.button("⬇️ Add less", key="ino_pos_dec", use_container_width=True, disabled=disabled):
             st.session_state.selected_node = "ino_pos"
             st.session_state.pending_direction = -1
             st.session_state.phase = "predict"
             st.rerun()
     with sub2:
-        st.markdown(f"<div class='inner-agent-box'><h5>Negative agents</h5><div class='arrow-display'>{inn}</div></div>", unsafe_allow_html=True)
-        if st.button("⬆️ Increase", key="ino_neg_inc", use_container_width=True, disabled=disabled):
+        st.markdown(f"<div class='inner-agent-box'><h5>Negative agents</h5><div style='font-size:0.75rem;color:#666;'>Amount:</div><div class='arrow-display'>{inn}</div></div>", unsafe_allow_html=True)
+        if st.button("⬆️ Add more", key="ino_neg_inc", use_container_width=True, disabled=disabled):
             st.session_state.selected_node = "ino_neg"
             st.session_state.pending_direction = 1
             st.session_state.phase = "predict"
             st.rerun()
-        if st.button("⬇️ Decrease", key="ino_neg_dec", use_container_width=True, disabled=disabled):
+        if st.button("⬇️ Add less", key="ino_neg_dec", use_container_width=True, disabled=disabled):
             st.session_state.selected_node = "ino_neg"
             st.session_state.pending_direction = -1
             st.session_state.phase = "predict"
