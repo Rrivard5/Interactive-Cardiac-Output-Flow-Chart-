@@ -389,20 +389,18 @@ for k, v in defaults.items():
 st.markdown("<div class='big-title'>🫀 Cardiac Output Flow Chart</div>", unsafe_allow_html=True)
 
 # Mode toggle
-col_toggle1, col_toggle2, col_toggle3 = st.columns([2, 1, 2])
-with col_toggle2:
-    mode = st.toggle("Advanced Mode", value=(st.session_state.mode == "Advanced"), key="mode_toggle")
-    if mode and st.session_state.mode != "Advanced":
-        st.session_state.mode = "Advanced"
-        # Reset state when switching modes
-        st.session_state.phase = "select_box"
-        st.session_state.selected_node = None
-        st.rerun()
-    elif not mode and st.session_state.mode != "Basic":
-        st.session_state.mode = "Basic"
-        st.session_state.phase = "select_box"
-        st.session_state.selected_node = None
-        st.rerun()
+mode = st.toggle("🔬 Advanced Mode", value=(st.session_state.mode == "Advanced"), key="mode_toggle")
+if mode and st.session_state.mode != "Advanced":
+    st.session_state.mode = "Advanced"
+    # Reset state when switching modes
+    st.session_state.phase = "select_box"
+    st.session_state.selected_node = None
+    st.rerun()
+elif not mode and st.session_state.mode != "Basic":
+    st.session_state.mode = "Basic"
+    st.session_state.phase = "select_box"
+    st.session_state.selected_node = None
+    st.rerun()
 
 if st.session_state.mode == "Basic":
     st.markdown(
@@ -660,7 +658,7 @@ if st.session_state.mode == "Basic":
     )
 
     # Key map for basic mode
-    key_map = {
+    key_map_basic = {
         "chrono_pos": "chrono_pos_effect",
         "chrono_neg": "chrono_neg_effect",
         "ino_pos": "ino_pos_effect",
@@ -670,9 +668,8 @@ if st.session_state.mode == "Basic":
         "hr": "hr_direct_effect",
         "sv": "sv_direct_effect",
     }
-    reset_keys = ["chrono_pos_effect", "chrono_neg_effect", "ino_pos_effect", "ino_neg_effect",
+    reset_keys_basic = ["chrono_pos_effect", "chrono_neg_effect", "ino_pos_effect", "ino_neg_effect",
                   "venous_return_effect", "afterload_effect", "hr_direct_effect", "sv_direct_effect"]
-    compute_fn = compute_state_basic
 
 # ==================================================
 # ADVANCED MODE
@@ -970,6 +967,36 @@ else:
     )
 
     # Key map for advanced mode
+    key_map_advanced = {
+        "exercise": "exercise_effect",
+        "filling_time": "filling_time_effect",
+        "bloodborne": "bloodborne_effect",
+        "autonomic": "autonomic_effect",
+        "adv_hr": "adv_hr_direct_effect",
+        "adv_sv": "adv_sv_direct_effect",
+    }
+    reset_keys_advanced = ["exercise_effect", "filling_time_effect", "bloodborne_effect", "autonomic_effect",
+                  "adv_hr_direct_effect", "adv_sv_direct_effect"]
+
+# ---------------------------
+# Handle phase transitions (shared)
+# ---------------------------
+# Set up correct key_map and reset_keys based on mode
+if st.session_state.mode == "Basic":
+    key_map = {
+        "chrono_pos": "chrono_pos_effect",
+        "chrono_neg": "chrono_neg_effect",
+        "ino_pos": "ino_pos_effect",
+        "ino_neg": "ino_neg_effect",
+        "venous": "venous_return_effect",
+        "afterload": "afterload_effect",
+        "hr": "hr_direct_effect",
+        "sv": "sv_direct_effect",
+    }
+    reset_keys = ["chrono_pos_effect", "chrono_neg_effect", "ino_pos_effect", "ino_neg_effect",
+                  "venous_return_effect", "afterload_effect", "hr_direct_effect", "sv_direct_effect"]
+    compute_fn = compute_state_basic
+else:
     key_map = {
         "exercise": "exercise_effect",
         "filling_time": "filling_time_effect",
@@ -982,9 +1009,6 @@ else:
                   "adv_hr_direct_effect", "adv_sv_direct_effect"]
     compute_fn = compute_state_advanced
 
-# ---------------------------
-# Handle phase transitions (shared)
-# ---------------------------
 if st.session_state.phase == "predict" and st.session_state.selected_node:
     node = st.session_state.selected_node
     _, _, CO_before = compute_fn()
