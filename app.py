@@ -34,27 +34,6 @@ st.markdown(
         margin-bottom: 1rem;
       }
       
-      .header-box {
-        border: 2px solid #333;
-        border-radius: 8px;
-        padding: 12px;
-        background: #EFE7E5;
-        text-align: center;
-        margin-bottom: 0px;
-      }
-      
-      .header-box h4 {
-        margin: 0 0 4px 0;
-        font-size: 1rem;
-        font-weight: 700;
-      }
-      
-      .header-box .desc {
-        font-size: 0.8rem;
-        color: #666;
-        margin: 0;
-      }
-      
       .header-box-yellow {
         border: 2px solid #333;
         border-radius: 8px;
@@ -82,6 +61,12 @@ st.markdown(
         margin: 8px 0;
       }
       
+      .arrow-display-small {
+        font-size: 1.2rem;
+        font-weight: 800;
+        margin: 4px 0;
+      }
+      
       .good { 
         color: #0a7a2f; 
         font-weight: 800;
@@ -97,21 +82,6 @@ st.markdown(
         border-radius: 8px !important;
         padding: 0.4rem 0.8rem !important;
         font-weight: 600 !important;
-      }
-      
-      .agent-box {
-        border: 2px solid #333;
-        border-radius: 8px;
-        padding: 10px;
-        background: white;
-        text-align: center;
-        margin-bottom: 8px;
-      }
-      
-      .agent-box h5 {
-        margin: 0 0 4px 0;
-        font-size: 0.9rem;
-        font-weight: 600;
       }
       
       .downstream-box {
@@ -225,6 +195,73 @@ st.markdown(
         font-size: 0.85rem;
         font-weight: 600;
       }
+      
+      /* Advanced mode styles */
+      .stimulus-box {
+        border: 2px solid #c44569;
+        border-radius: 8px;
+        padding: 10px;
+        background: #FFD6E0;
+        text-align: center;
+        margin-bottom: 6px;
+      }
+      
+      .stimulus-box h5 {
+        margin: 0 0 4px 0;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #333;
+      }
+      
+      .stimulus-box .desc {
+        font-size: 0.75rem;
+        color: #666;
+        margin: 0;
+      }
+      
+      .response-box {
+        border: 2px solid #2d6a4f;
+        border-radius: 8px;
+        padding: 10px;
+        background: #D8F3DC;
+        text-align: center;
+        margin-bottom: 6px;
+      }
+      
+      .response-box h5 {
+        margin: 0 0 4px 0;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #333;
+      }
+      
+      .result-box {
+        border: 2px solid #b8860b;
+        border-radius: 8px;
+        padding: 12px;
+        background: #FFEAA7;
+        text-align: center;
+      }
+      
+      .result-box h4 {
+        margin: 0 0 4px 0;
+        font-size: 1rem;
+        font-weight: 700;
+      }
+      
+      .legend-box {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+        margin-right: 8px;
+        vertical-align: middle;
+      }
+      
+      .legend-text {
+        font-size: 0.85rem;
+        vertical-align: middle;
+      }
     </style>
     """,
     unsafe_allow_html=True,
@@ -241,7 +278,7 @@ def expected_direction(before, after, eps=1e-6):
         return "No change"
     return "Increase" if after > before else "Decrease"
 
-def compute_state():
+def compute_state_basic():
     hr0 = st.session_state.hr_baseline
     sv0 = st.session_state.sv_baseline
     HR_STEP = 0.12
@@ -259,6 +296,47 @@ def compute_state():
     co = hr * sv / 1000.0
     return hr, sv, co
 
+def compute_state_advanced():
+    hr0 = st.session_state.hr_baseline
+    sv0 = st.session_state.sv_baseline
+    STEP = 0.12
+    
+    # Stimuli effects
+    exercise = st.session_state.exercise_effect
+    filling_time = st.session_state.filling_time_effect
+    bloodborne = st.session_state.bloodborne_effect
+    autonomic = st.session_state.autonomic_effect
+    
+    # Physiological responses (calculated from stimuli)
+    # Exercise increases venous return and sympathetic activity
+    venous_return = exercise + filling_time
+    sympathetic = exercise + autonomic
+    parasympathetic = -autonomic  # Opposite of autonomic changes
+    
+    # Contractility affected by bloodborne agents and sympathetic activity
+    contractility = bloodborne + sympathetic
+    
+    # EDV (preload) from venous return
+    edv = venous_return
+    
+    # ESV decreases with increased contractility (inverse)
+    esv = -contractility
+    
+    # Direct effects
+    hr_direct = st.session_state.adv_hr_direct_effect
+    sv_direct = st.session_state.adv_sv_direct_effect
+    
+    # HR affected by sympathetic (up) and parasympathetic (down)
+    hr = hr0 * (1 + STEP * (sympathetic - parasympathetic + hr_direct))
+    
+    # SV = EDV - ESV, so increases with EDV and decreases with ESV
+    sv = sv0 * (1 + STEP * (edv - esv + sv_direct))
+    
+    hr = max(30, min(180, hr))
+    sv = max(30, min(140, sv))
+    co = hr * sv / 1000.0
+    return hr, sv, co
+
 def direction_vs_baseline(value, baseline, eps=1e-6):
     if abs(value - baseline) < eps:
         return 0
@@ -268,7 +346,6 @@ def have_dialog():
     return hasattr(st, "dialog")
 
 def buttons_disabled():
-    # Disable buttons if we're past the select_box phase
     return st.session_state.phase != "select_box"
 
 # ---------------------------
@@ -277,6 +354,8 @@ def buttons_disabled():
 defaults = {
     "hr_baseline": 70.0,
     "sv_baseline": 70.0,
+    "mode": "Basic",
+    # Basic mode effects
     "chrono_pos_effect": 0,
     "chrono_neg_effect": 0,
     "ino_pos_effect": 0,
@@ -285,6 +364,14 @@ defaults = {
     "afterload_effect": 0,
     "hr_direct_effect": 0,
     "sv_direct_effect": 0,
+    # Advanced mode effects
+    "exercise_effect": 0,
+    "filling_time_effect": 0,
+    "bloodborne_effect": 0,
+    "autonomic_effect": 0,
+    "adv_hr_direct_effect": 0,
+    "adv_sv_direct_effect": 0,
+    # Phase tracking
     "phase": "select_box",
     "selected_node": None,
     "pending_direction": None,
@@ -300,270 +387,607 @@ for k, v in defaults.items():
 # Header
 # ---------------------------
 st.markdown("<div class='big-title'>🫀 Cardiac Output Flow Chart</div>", unsafe_allow_html=True)
-st.markdown(
-    "<p class='subtitle'>Click ⬆️ Increase or ⬇️ Decrease in any box, predict the CO change, then see the flow chart update.</p>",
-    unsafe_allow_html=True
-)
 
-# ---------------------------
-# Compute downstream arrows
-# ---------------------------
-hr, sv, co = compute_state()
-hr_dir = direction_vs_baseline(hr, st.session_state.hr_baseline)
-sv_dir = direction_vs_baseline(sv, st.session_state.sv_baseline)
-co_dir = direction_vs_baseline(co, (st.session_state.hr_baseline * st.session_state.sv_baseline / 1000.0))
+# Mode toggle
+col_toggle1, col_toggle2, col_toggle3 = st.columns([2, 1, 2])
+with col_toggle2:
+    mode = st.toggle("Advanced Mode", value=(st.session_state.mode == "Advanced"), key="mode_toggle")
+    if mode and st.session_state.mode != "Advanced":
+        st.session_state.mode = "Advanced"
+        # Reset state when switching modes
+        st.session_state.phase = "select_box"
+        st.session_state.selected_node = None
+        st.rerun()
+    elif not mode and st.session_state.mode != "Basic":
+        st.session_state.mode = "Basic"
+        st.session_state.phase = "select_box"
+        st.session_state.selected_node = None
+        st.rerun()
 
-HR_arrow = effect_arrow(hr_dir)
-SV_arrow = effect_arrow(sv_dir)
-CO_arrow = effect_arrow(co_dir)
-
-cp = effect_arrow(st.session_state.chrono_pos_effect)
-cn = effect_arrow(st.session_state.chrono_neg_effect)
-ip = effect_arrow(st.session_state.ino_pos_effect)
-inn = effect_arrow(st.session_state.ino_neg_effect)
-vr = effect_arrow(st.session_state.venous_return_effect)
-al = effect_arrow(st.session_state.afterload_effect)
+if st.session_state.mode == "Basic":
+    st.markdown(
+        "<p class='subtitle'>Click ⬆️ Increase or ⬇️ Decrease in any box, predict the CO change, then see the flow chart update.</p>",
+        unsafe_allow_html=True
+    )
+else:
+    st.markdown(
+        "<p class='subtitle'><b>Advanced Mode:</b> Explore how initial stimuli trigger physiological responses that affect cardiac output.</p>",
+        unsafe_allow_html=True
+    )
+    # Legend
+    st.markdown(
+        """
+        <div style="margin-bottom: 15px;">
+            <span class="legend-box" style="background: #FFD6E0; border: 1px solid #c44569;"></span><span class="legend-text">Initial stimulus</span>
+            &nbsp;&nbsp;&nbsp;
+            <span class="legend-box" style="background: #D8F3DC; border: 1px solid #2d6a4f;"></span><span class="legend-text">Physiological response</span>
+            &nbsp;&nbsp;&nbsp;
+            <span class="legend-box" style="background: #FFEAA7; border: 1px solid #b8860b;"></span><span class="legend-text">Result</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 disabled = buttons_disabled()
 
-# ---------------------------
-# ROW 1: Four main boxes
-# ---------------------------
-col1, col2, col3, col4 = st.columns(4)
+# ==================================================
+# BASIC MODE
+# ==================================================
+if st.session_state.mode == "Basic":
+    # Compute state
+    hr, sv, co = compute_state_basic()
+    hr_dir = direction_vs_baseline(hr, st.session_state.hr_baseline)
+    sv_dir = direction_vs_baseline(sv, st.session_state.sv_baseline)
+    co_dir = direction_vs_baseline(co, (st.session_state.hr_baseline * st.session_state.sv_baseline / 1000.0))
 
-with col1:
-    # Chronotropic agents container with nested positive/negative boxes
+    HR_arrow = effect_arrow(hr_dir)
+    SV_arrow = effect_arrow(sv_dir)
+    CO_arrow = effect_arrow(co_dir)
+
+    cp = effect_arrow(st.session_state.chrono_pos_effect)
+    cn = effect_arrow(st.session_state.chrono_neg_effect)
+    ip = effect_arrow(st.session_state.ino_pos_effect)
+    inn = effect_arrow(st.session_state.ino_neg_effect)
+    vr = effect_arrow(st.session_state.venous_return_effect)
+    al = effect_arrow(st.session_state.afterload_effect)
+
+    # ROW 1: Four main boxes
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.markdown(
+            """
+            <div class='container-box'>
+                <h4>Chronotropic agents</h4>
+                <div class='desc'>(alter SA node and AV node activity)</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        sub1, sub2 = st.columns(2)
+        with sub1:
+            st.markdown(f"<div class='inner-agent-box'><h5>Positive agents</h5><div style='font-size:0.75rem;color:#666;'>Amount:</div><div class='arrow-display'>{cp}</div></div>", unsafe_allow_html=True)
+            if st.button("⬆️ Add more", key="chrono_pos_inc", use_container_width=True, disabled=disabled):
+                st.session_state.selected_node = "chrono_pos"
+                st.session_state.pending_direction = 1
+                st.session_state.phase = "predict"
+                st.rerun()
+            if st.button("⬇️ Add less", key="chrono_pos_dec", use_container_width=True, disabled=disabled):
+                st.session_state.selected_node = "chrono_pos"
+                st.session_state.pending_direction = -1
+                st.session_state.phase = "predict"
+                st.rerun()
+        with sub2:
+            st.markdown(f"<div class='inner-agent-box'><h5>Negative agents</h5><div style='font-size:0.75rem;color:#666;'>Amount:</div><div class='arrow-display'>{cn}</div></div>", unsafe_allow_html=True)
+            if st.button("⬆️ Add more", key="chrono_neg_inc", use_container_width=True, disabled=disabled):
+                st.session_state.selected_node = "chrono_neg"
+                st.session_state.pending_direction = 1
+                st.session_state.phase = "predict"
+                st.rerun()
+            if st.button("⬇️ Add less", key="chrono_neg_dec", use_container_width=True, disabled=disabled):
+                st.session_state.selected_node = "chrono_neg"
+                st.session_state.pending_direction = -1
+                st.session_state.phase = "predict"
+                st.rerun()
+
+    with col2:
+        st.markdown(
+            f"""
+            <div class='header-box-yellow'>
+                <h4>Venous return</h4>
+                <div class='desc'>(volume of blood returning to heart alters stretch of heart wall or preload)</div>
+                <div class='arrow-display'>{vr}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("⬆️ Increase", key="venous_inc", use_container_width=True, disabled=disabled):
+                st.session_state.selected_node = "venous"
+                st.session_state.pending_direction = 1
+                st.session_state.phase = "predict"
+                st.rerun()
+        with c2:
+            if st.button("⬇️ Decrease", key="venous_dec", use_container_width=True, disabled=disabled):
+                st.session_state.selected_node = "venous"
+                st.session_state.pending_direction = -1
+                st.session_state.phase = "predict"
+                st.rerun()
+        st.markdown("<div class='arrow-down'>↓</div>", unsafe_allow_html=True)
+        st.markdown("<div class='correlation-text'>is directly<br/>correlated with</div>", unsafe_allow_html=True)
+
+    with col3:
+        st.markdown(
+            """
+            <div class='container-box-pink'>
+                <h4>Inotropic agents</h4>
+                <div class='desc'>(substances that alter contractility of myocardium)</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        sub1, sub2 = st.columns(2)
+        with sub1:
+            st.markdown(f"<div class='inner-agent-box'><h5>Positive agents</h5><div style='font-size:0.75rem;color:#666;'>Amount:</div><div class='arrow-display'>{ip}</div></div>", unsafe_allow_html=True)
+            if st.button("⬆️ Add more", key="ino_pos_inc", use_container_width=True, disabled=disabled):
+                st.session_state.selected_node = "ino_pos"
+                st.session_state.pending_direction = 1
+                st.session_state.phase = "predict"
+                st.rerun()
+            if st.button("⬇️ Add less", key="ino_pos_dec", use_container_width=True, disabled=disabled):
+                st.session_state.selected_node = "ino_pos"
+                st.session_state.pending_direction = -1
+                st.session_state.phase = "predict"
+                st.rerun()
+        with sub2:
+            st.markdown(f"<div class='inner-agent-box'><h5>Negative agents</h5><div style='font-size:0.75rem;color:#666;'>Amount:</div><div class='arrow-display'>{inn}</div></div>", unsafe_allow_html=True)
+            if st.button("⬆️ Add more", key="ino_neg_inc", use_container_width=True, disabled=disabled):
+                st.session_state.selected_node = "ino_neg"
+                st.session_state.pending_direction = 1
+                st.session_state.phase = "predict"
+                st.rerun()
+            if st.button("⬇️ Add less", key="ino_neg_dec", use_container_width=True, disabled=disabled):
+                st.session_state.selected_node = "ino_neg"
+                st.session_state.pending_direction = -1
+                st.session_state.phase = "predict"
+                st.rerun()
+
+    with col4:
+        st.markdown(
+            f"""
+            <div class='header-box-yellow'>
+                <h4>Afterload</h4>
+                <div class='desc'>(increased resistance in arteries)</div>
+                <div class='arrow-display'>{al}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("⬆️ Increase", key="afterload_inc", use_container_width=True, disabled=disabled):
+                st.session_state.selected_node = "afterload"
+                st.session_state.pending_direction = 1
+                st.session_state.phase = "predict"
+                st.rerun()
+        with c2:
+            if st.button("⬇️ Decrease", key="afterload_dec", use_container_width=True, disabled=disabled):
+                st.session_state.selected_node = "afterload"
+                st.session_state.pending_direction = -1
+                st.session_state.phase = "predict"
+                st.rerun()
+        st.markdown("<div class='arrow-down'>↓</div>", unsafe_allow_html=True)
+        st.markdown("<div class='correlation-text'>is inversely<br/>correlated with</div>", unsafe_allow_html=True)
+
+    # ROW 2: Arrows
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.markdown("<div class='arrow-down'>↓</div>", unsafe_allow_html=True)
+    with col3:
+        st.markdown("<div class='arrow-down'>↓</div>", unsafe_allow_html=True)
+
+    # ROW 3: HR and SV
+    col_hr, col_sv = st.columns([1, 3])
+
+    with col_hr:
+        st.markdown(
+            f"""
+            <div class='downstream-box'>
+                <h4>Heart rate</h4>
+                <div class='desc'>(beats per minute)</div>
+                <div class='arrow-display'>{HR_arrow}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("⬆️ Increase", key="hr_inc", use_container_width=True, disabled=disabled):
+                st.session_state.selected_node = "hr"
+                st.session_state.pending_direction = 1
+                st.session_state.phase = "predict"
+                st.rerun()
+        with c2:
+            if st.button("⬇️ Decrease", key="hr_dec", use_container_width=True, disabled=disabled):
+                st.session_state.selected_node = "hr"
+                st.session_state.pending_direction = -1
+                st.session_state.phase = "predict"
+                st.rerun()
+
+    with col_sv:
+        st.markdown(
+            f"""
+            <div class='downstream-box-yellow'>
+                <h4>Stroke volume</h4>
+                <div class='desc'>(blood pumped per beat)</div>
+                <div class='arrow-display'>{SV_arrow}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("⬆️ Increase", key="sv_inc", use_container_width=True, disabled=disabled):
+                st.session_state.selected_node = "sv"
+                st.session_state.pending_direction = 1
+                st.session_state.phase = "predict"
+                st.rerun()
+        with c2:
+            if st.button("⬇️ Decrease", key="sv_dec", use_container_width=True, disabled=disabled):
+                st.session_state.selected_node = "sv"
+                st.session_state.pending_direction = -1
+                st.session_state.phase = "predict"
+                st.rerun()
+
+    # Arrows to CO
+    col_arrow1, col_arrow2 = st.columns([1, 3])
+    with col_arrow1:
+        st.markdown("<div style='text-align: center; font-size: 2rem; margin: 10px 0;'>↘</div>", unsafe_allow_html=True)
+    with col_arrow2:
+        st.markdown("<div style='text-align: center; font-size: 2rem; margin: 10px 0;'>↙</div>", unsafe_allow_html=True)
+
+    # CO
+    st.markdown(
+        f"""
+        <div class='co-box'>
+            <h4>Cardiac output</h4>
+            <div class='desc'>(blood pumped per minute)</div>
+            <div class='arrow-display'>{CO_arrow}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # Key map for basic mode
+    key_map = {
+        "chrono_pos": "chrono_pos_effect",
+        "chrono_neg": "chrono_neg_effect",
+        "ino_pos": "ino_pos_effect",
+        "ino_neg": "ino_neg_effect",
+        "venous": "venous_return_effect",
+        "afterload": "afterload_effect",
+        "hr": "hr_direct_effect",
+        "sv": "sv_direct_effect",
+    }
+    reset_keys = ["chrono_pos_effect", "chrono_neg_effect", "ino_pos_effect", "ino_neg_effect",
+                  "venous_return_effect", "afterload_effect", "hr_direct_effect", "sv_direct_effect"]
+    compute_fn = compute_state_basic
+
+# ==================================================
+# ADVANCED MODE
+# ==================================================
+else:
+    # Compute state
+    hr, sv, co = compute_state_advanced()
+    hr_dir = direction_vs_baseline(hr, st.session_state.hr_baseline)
+    sv_dir = direction_vs_baseline(sv, st.session_state.sv_baseline)
+    co_dir = direction_vs_baseline(co, (st.session_state.hr_baseline * st.session_state.sv_baseline / 1000.0))
+
+    HR_arrow = effect_arrow(hr_dir)
+    SV_arrow = effect_arrow(sv_dir)
+    CO_arrow = effect_arrow(co_dir)
+
+    # Stimulus arrows
+    exercise_arr = effect_arrow(st.session_state.exercise_effect)
+    filling_arr = effect_arrow(st.session_state.filling_time_effect)
+    bloodborne_arr = effect_arrow(st.session_state.bloodborne_effect)
+    autonomic_arr = effect_arrow(st.session_state.autonomic_effect)
+
+    # Calculated response arrows
+    venous_response = st.session_state.exercise_effect + st.session_state.filling_time_effect
+    sympathetic_response = st.session_state.exercise_effect + st.session_state.autonomic_effect
+    parasympathetic_response = -st.session_state.autonomic_effect
+    contractility_response = st.session_state.bloodborne_effect + sympathetic_response
+    edv_response = venous_response
+    esv_response = -contractility_response
+
+    venous_arr = effect_arrow(1 if venous_response > 0 else (-1 if venous_response < 0 else 0))
+    sympathetic_arr = effect_arrow(1 if sympathetic_response > 0 else (-1 if sympathetic_response < 0 else 0))
+    parasympathetic_arr = effect_arrow(1 if parasympathetic_response > 0 else (-1 if parasympathetic_response < 0 else 0))
+    contractility_arr = effect_arrow(1 if contractility_response > 0 else (-1 if contractility_response < 0 else 0))
+    edv_arr = effect_arrow(1 if edv_response > 0 else (-1 if edv_response < 0 else 0))
+    esv_arr = effect_arrow(1 if esv_response > 0 else (-1 if esv_response < 0 else 0))
+
+    # ROW 1: Initial Stimuli (pink boxes)
+    st.markdown("#### Initial Stimuli")
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.markdown(
+            f"""
+            <div class='stimulus-box'>
+                <h5>Exercise</h5>
+                <div class='desc'>(↑ sympathetic activity, ↑ skeletal muscle and respiratory pumps)</div>
+                <div class='arrow-display-small'>{exercise_arr}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("⬆️ More", key="exercise_inc", use_container_width=True, disabled=disabled):
+                st.session_state.selected_node = "exercise"
+                st.session_state.pending_direction = 1
+                st.session_state.phase = "predict"
+                st.rerun()
+        with c2:
+            if st.button("⬇️ Less", key="exercise_dec", use_container_width=True, disabled=disabled):
+                st.session_state.selected_node = "exercise"
+                st.session_state.pending_direction = -1
+                st.session_state.phase = "predict"
+                st.rerun()
+
+    with col2:
+        st.markdown(
+            f"""
+            <div class='stimulus-box'>
+                <h5>↑ Ventricular filling time</h5>
+                <div class='desc'>(due to ↓ heart rate)</div>
+                <div class='arrow-display-small'>{filling_arr}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("⬆️ More", key="filling_inc", use_container_width=True, disabled=disabled):
+                st.session_state.selected_node = "filling_time"
+                st.session_state.pending_direction = 1
+                st.session_state.phase = "predict"
+                st.rerun()
+        with c2:
+            if st.button("⬇️ Less", key="filling_dec", use_container_width=True, disabled=disabled):
+                st.session_state.selected_node = "filling_time"
+                st.session_state.pending_direction = -1
+                st.session_state.phase = "predict"
+                st.rerun()
+
+    with col3:
+        st.markdown(
+            f"""
+            <div class='stimulus-box'>
+                <h5>Bloodborne agents</h5>
+                <div class='desc'>(epinephrine, thyroxine, excess Ca²⁺)</div>
+                <div class='arrow-display-small'>{bloodborne_arr}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("⬆️ More", key="bloodborne_inc", use_container_width=True, disabled=disabled):
+                st.session_state.selected_node = "bloodborne"
+                st.session_state.pending_direction = 1
+                st.session_state.phase = "predict"
+                st.rerun()
+        with c2:
+            if st.button("⬇️ Less", key="bloodborne_dec", use_container_width=True, disabled=disabled):
+                st.session_state.selected_node = "bloodborne"
+                st.session_state.pending_direction = -1
+                st.session_state.phase = "predict"
+                st.rerun()
+
+    with col4:
+        st.markdown(
+            f"""
+            <div class='stimulus-box'>
+                <h5>Changes in autonomic CNS output</h5>
+                <div class='desc'>(exercise, fright, anxiety, or ↓ blood pressure)</div>
+                <div class='arrow-display-small'>{autonomic_arr}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("⬆️ More", key="autonomic_inc", use_container_width=True, disabled=disabled):
+                st.session_state.selected_node = "autonomic"
+                st.session_state.pending_direction = 1
+                st.session_state.phase = "predict"
+                st.rerun()
+        with c2:
+            if st.button("⬇️ Less", key="autonomic_dec", use_container_width=True, disabled=disabled):
+                st.session_state.selected_node = "autonomic"
+                st.session_state.pending_direction = -1
+                st.session_state.phase = "predict"
+                st.rerun()
+
+    # Arrows down
+    st.markdown("<div class='arrow-down'>↓</div>", unsafe_allow_html=True)
+
+    # ROW 2: Physiological Responses (green boxes)
+    st.markdown("#### Physiological Responses")
+    col1, col2, col3, col4, col5 = st.columns(5)
+
+    with col1:
+        st.markdown(
+            f"""
+            <div class='response-box'>
+                <h5>↑ Venous return</h5>
+                <div class='arrow-display-small'>{venous_arr}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    with col2:
+        st.markdown(
+            f"""
+            <div class='response-box'>
+                <h5>↑ Contractility</h5>
+                <div class='arrow-display-small'>{contractility_arr}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    with col3:
+        st.markdown(
+            f"""
+            <div class='response-box'>
+                <h5>↑ Sympathetic activity</h5>
+                <div class='arrow-display-small'>{sympathetic_arr}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    with col4:
+        st.markdown(
+            f"""
+            <div class='response-box'>
+                <h5>↓ Parasympathetic activity</h5>
+                <div class='arrow-display-small'>{parasympathetic_arr}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    # Arrows
+    st.markdown("<div class='arrow-down'>↓</div>", unsafe_allow_html=True)
+
+    # ROW 3: EDV and ESV
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.markdown(
+            f"""
+            <div class='response-box'>
+                <h5>↑ EDV (preload)</h5>
+                <div class='arrow-display-small'>{edv_arr}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    with col2:
+        st.markdown(
+            f"""
+            <div class='response-box'>
+                <h5>↓ ESV</h5>
+                <div class='arrow-display-small'>{esv_arr}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    # Arrows
+    st.markdown("<div class='arrow-down'>↓</div>", unsafe_allow_html=True)
+
+    # ROW 4: Results - SV and HR
+    st.markdown("#### Results")
+    col_sv, col_hr = st.columns(2)
+
+    with col_sv:
+        st.markdown(
+            f"""
+            <div class='result-box'>
+                <h4>↑ Stroke volume (SV)</h4>
+                <div class='arrow-display'>{SV_arrow}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("⬆️ Increase", key="adv_sv_inc", use_container_width=True, disabled=disabled):
+                st.session_state.selected_node = "adv_sv"
+                st.session_state.pending_direction = 1
+                st.session_state.phase = "predict"
+                st.rerun()
+        with c2:
+            if st.button("⬇️ Decrease", key="adv_sv_dec", use_container_width=True, disabled=disabled):
+                st.session_state.selected_node = "adv_sv"
+                st.session_state.pending_direction = -1
+                st.session_state.phase = "predict"
+                st.rerun()
+
+    with col_hr:
+        st.markdown(
+            f"""
+            <div class='result-box'>
+                <h4>↑ Heart rate (HR)</h4>
+                <div class='arrow-display'>{HR_arrow}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("⬆️ Increase", key="adv_hr_inc", use_container_width=True, disabled=disabled):
+                st.session_state.selected_node = "adv_hr"
+                st.session_state.pending_direction = 1
+                st.session_state.phase = "predict"
+                st.rerun()
+        with c2:
+            if st.button("⬇️ Decrease", key="adv_hr_dec", use_container_width=True, disabled=disabled):
+                st.session_state.selected_node = "adv_hr"
+                st.session_state.pending_direction = -1
+                st.session_state.phase = "predict"
+                st.rerun()
+
+    # Arrows to CO
     st.markdown(
         """
-        <div class='container-box'>
-            <h4>Chronotropic agents</h4>
-            <div class='desc'>(alter SA node and AV node activity)</div>
+        <div style="display: flex; justify-content: center; margin: 15px 0;">
+            <span style="font-size: 2rem; margin-right: 100px;">↘</span>
+            <span style="font-size: 2rem; margin-left: 100px;">↙</span>
         </div>
         """,
         unsafe_allow_html=True
     )
-    sub1, sub2 = st.columns(2)
-    with sub1:
-        st.markdown(f"<div class='inner-agent-box'><h5>Positive agents</h5><div style='font-size:0.75rem;color:#666;'>Amount:</div><div class='arrow-display'>{cp}</div></div>", unsafe_allow_html=True)
-        if st.button("⬆️ Add more", key="chrono_pos_inc", use_container_width=True, disabled=disabled):
-            st.session_state.selected_node = "chrono_pos"
-            st.session_state.pending_direction = 1
-            st.session_state.phase = "predict"
-            st.rerun()
-        if st.button("⬇️ Add less", key="chrono_pos_dec", use_container_width=True, disabled=disabled):
-            st.session_state.selected_node = "chrono_pos"
-            st.session_state.pending_direction = -1
-            st.session_state.phase = "predict"
-            st.rerun()
-    with sub2:
-        st.markdown(f"<div class='inner-agent-box'><h5>Negative agents</h5><div style='font-size:0.75rem;color:#666;'>Amount:</div><div class='arrow-display'>{cn}</div></div>", unsafe_allow_html=True)
-        if st.button("⬆️ Add more", key="chrono_neg_inc", use_container_width=True, disabled=disabled):
-            st.session_state.selected_node = "chrono_neg"
-            st.session_state.pending_direction = 1
-            st.session_state.phase = "predict"
-            st.rerun()
-        if st.button("⬇️ Add less", key="chrono_neg_dec", use_container_width=True, disabled=disabled):
-            st.session_state.selected_node = "chrono_neg"
-            st.session_state.pending_direction = -1
-            st.session_state.phase = "predict"
-            st.rerun()
 
-with col2:
+    # CO
     st.markdown(
         f"""
-        <div class='header-box-yellow'>
-            <h4>Venous return</h4>
-            <div class='desc'>(volume of blood returning to heart alters stretch of heart wall or preload)</div>
-            <div class='arrow-display'>{vr}</div>
+        <div class='co-box'>
+            <h4>↑ Cardiac output (CO = SV × HR)</h4>
+            <div class='arrow-display'>{CO_arrow}</div>
         </div>
         """,
         unsafe_allow_html=True
     )
-    c1, c2 = st.columns(2)
-    with c1:
-        if st.button("⬆️ Increase", key="venous_inc", use_container_width=True, disabled=disabled):
-            st.session_state.selected_node = "venous"
-            st.session_state.pending_direction = 1
-            st.session_state.phase = "predict"
-            st.rerun()
-    with c2:
-        if st.button("⬇️ Decrease", key="venous_dec", use_container_width=True, disabled=disabled):
-            st.session_state.selected_node = "venous"
-            st.session_state.pending_direction = -1
-            st.session_state.phase = "predict"
-            st.rerun()
-    # Arrow and correlation text
-    st.markdown("<div class='arrow-down'>↓</div>", unsafe_allow_html=True)
-    st.markdown("<div class='correlation-text'>is directly<br/>correlated with</div>", unsafe_allow_html=True)
 
-with col3:
-    # Inotropic agents container with nested positive/negative boxes
-    st.markdown(
-        """
-        <div class='container-box-pink'>
-            <h4>Inotropic agents</h4>
-            <div class='desc'>(substances that alter contractility of myocardium)</div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-    sub1, sub2 = st.columns(2)
-    with sub1:
-        st.markdown(f"<div class='inner-agent-box'><h5>Positive agents</h5><div style='font-size:0.75rem;color:#666;'>Amount:</div><div class='arrow-display'>{ip}</div></div>", unsafe_allow_html=True)
-        if st.button("⬆️ Add more", key="ino_pos_inc", use_container_width=True, disabled=disabled):
-            st.session_state.selected_node = "ino_pos"
-            st.session_state.pending_direction = 1
-            st.session_state.phase = "predict"
-            st.rerun()
-        if st.button("⬇️ Add less", key="ino_pos_dec", use_container_width=True, disabled=disabled):
-            st.session_state.selected_node = "ino_pos"
-            st.session_state.pending_direction = -1
-            st.session_state.phase = "predict"
-            st.rerun()
-    with sub2:
-        st.markdown(f"<div class='inner-agent-box'><h5>Negative agents</h5><div style='font-size:0.75rem;color:#666;'>Amount:</div><div class='arrow-display'>{inn}</div></div>", unsafe_allow_html=True)
-        if st.button("⬆️ Add more", key="ino_neg_inc", use_container_width=True, disabled=disabled):
-            st.session_state.selected_node = "ino_neg"
-            st.session_state.pending_direction = 1
-            st.session_state.phase = "predict"
-            st.rerun()
-        if st.button("⬇️ Add less", key="ino_neg_dec", use_container_width=True, disabled=disabled):
-            st.session_state.selected_node = "ino_neg"
-            st.session_state.pending_direction = -1
-            st.session_state.phase = "predict"
-            st.rerun()
-
-with col4:
-    st.markdown(
-        f"""
-        <div class='header-box-yellow'>
-            <h4>Afterload</h4>
-            <div class='desc'>(increased resistance in arteries)</div>
-            <div class='arrow-display'>{al}</div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-    c1, c2 = st.columns(2)
-    with c1:
-        if st.button("⬆️ Increase", key="afterload_inc", use_container_width=True, disabled=disabled):
-            st.session_state.selected_node = "afterload"
-            st.session_state.pending_direction = 1
-            st.session_state.phase = "predict"
-            st.rerun()
-    with c2:
-        if st.button("⬇️ Decrease", key="afterload_dec", use_container_width=True, disabled=disabled):
-            st.session_state.selected_node = "afterload"
-            st.session_state.pending_direction = -1
-            st.session_state.phase = "predict"
-            st.rerun()
-    # Arrow and correlation text
-    st.markdown("<div class='arrow-down'>↓</div>", unsafe_allow_html=True)
-    st.markdown("<div class='correlation-text'>is inversely<br/>correlated with</div>", unsafe_allow_html=True)
+    # Key map for advanced mode
+    key_map = {
+        "exercise": "exercise_effect",
+        "filling_time": "filling_time_effect",
+        "bloodborne": "bloodborne_effect",
+        "autonomic": "autonomic_effect",
+        "adv_hr": "adv_hr_direct_effect",
+        "adv_sv": "adv_sv_direct_effect",
+    }
+    reset_keys = ["exercise_effect", "filling_time_effect", "bloodborne_effect", "autonomic_effect",
+                  "adv_hr_direct_effect", "adv_sv_direct_effect"]
+    compute_fn = compute_state_advanced
 
 # ---------------------------
-# ROW 2: Arrows down (positioned under each section)
-# ---------------------------
-col1, col2, col3, col4 = st.columns(4)
-
-with col1:
-    st.markdown("<div class='arrow-down'>↓</div>", unsafe_allow_html=True)
-
-with col2:
-    st.write("")
-
-with col3:
-    st.markdown("<div class='arrow-down'>↓</div>", unsafe_allow_html=True)
-
-with col4:
-    st.write("")
-
-# ---------------------------
-# ROW 3: Heart Rate (col 1) and Stroke Volume (cols 2-4)
-# ---------------------------
-col_hr, col_sv = st.columns([1, 3])
-
-with col_hr:
-    st.markdown(
-        f"""
-        <div class='downstream-box'>
-            <h4>Heart rate</h4>
-            <div class='desc'>(beats per minute)</div>
-            <div class='arrow-display'>{HR_arrow}</div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-    c1, c2 = st.columns(2)
-    with c1:
-        if st.button("⬆️ Increase", key="hr_inc", use_container_width=True, disabled=disabled):
-            st.session_state.selected_node = "hr"
-            st.session_state.pending_direction = 1
-            st.session_state.phase = "predict"
-            st.rerun()
-    with c2:
-        if st.button("⬇️ Decrease", key="hr_dec", use_container_width=True, disabled=disabled):
-            st.session_state.selected_node = "hr"
-            st.session_state.pending_direction = -1
-            st.session_state.phase = "predict"
-            st.rerun()
-
-with col_sv:
-    st.markdown(
-        f"""
-        <div class='downstream-box-yellow'>
-            <h4>Stroke volume</h4>
-            <div class='desc'>(blood pumped per beat)</div>
-            <div class='arrow-display'>{SV_arrow}</div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-    c1, c2 = st.columns(2)
-    with c1:
-        if st.button("⬆️ Increase", key="sv_inc", use_container_width=True, disabled=disabled):
-            st.session_state.selected_node = "sv"
-            st.session_state.pending_direction = 1
-            st.session_state.phase = "predict"
-            st.rerun()
-    with c2:
-        if st.button("⬇️ Decrease", key="sv_dec", use_container_width=True, disabled=disabled):
-            st.session_state.selected_node = "sv"
-            st.session_state.pending_direction = -1
-            st.session_state.phase = "predict"
-            st.rerun()
-
-# ---------------------------
-# ROW 4: Arrows to Cardiac Output
-# ---------------------------
-col_arrow1, col_arrow2 = st.columns([1, 3])
-
-with col_arrow1:
-    st.markdown("<div style='text-align: center; font-size: 2rem; margin: 10px 0;'>↘</div>", unsafe_allow_html=True)
-
-with col_arrow2:
-    st.markdown("<div style='text-align: center; font-size: 2rem; margin: 10px 0;'>↙</div>", unsafe_allow_html=True)
-
-# ---------------------------
-# ROW 5: Cardiac Output (full width)
-# ---------------------------
-st.markdown(
-    f"""
-    <div class='co-box'>
-        <h4>Cardiac output</h4>
-        <div class='desc'>(blood pumped per minute)</div>
-        <div class='arrow-display'>{CO_arrow}</div>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-# ---------------------------
-# Handle phase transitions
+# Handle phase transitions (shared)
 # ---------------------------
 if st.session_state.phase == "predict" and st.session_state.selected_node:
     node = st.session_state.selected_node
-    _, _, CO_before = compute_state()
+    _, _, CO_before = compute_fn()
 
     if have_dialog():
         @st.dialog("🔮 Predict the impact on cardiac output")
@@ -574,19 +998,9 @@ if st.session_state.phase == "predict" and st.session_state.selected_node:
             st.write("")
             if st.button("✅ Submit prediction", type="primary", disabled=(pred is None)):
                 st.session_state.prediction = pred
-                key_map = {
-                    "chrono_pos": "chrono_pos_effect",
-                    "chrono_neg": "chrono_neg_effect",
-                    "ino_pos": "ino_pos_effect",
-                    "ino_neg": "ino_neg_effect",
-                    "venous": "venous_return_effect",
-                    "afterload": "afterload_effect",
-                    "hr": "hr_direct_effect",
-                    "sv": "sv_direct_effect",
-                }
                 st.session_state[key_map[node]] = st.session_state.pending_direction
                 st.session_state.graph_version += 1
-                _, _, CO_after = compute_state()
+                _, _, CO_after = compute_fn()
                 dir_CO = expected_direction(CO_before, CO_after)
                 st.session_state.last_feedback = dir_CO
                 st.session_state.last_correct = (dir_CO == pred)
@@ -617,8 +1031,7 @@ if st.session_state.phase == "show_result":
 
     st.write("")
     if st.button("🔄 Start a new round", type="primary", use_container_width=True):
-        for key in ["chrono_pos_effect", "chrono_neg_effect", "ino_pos_effect", "ino_neg_effect",
-                    "venous_return_effect", "afterload_effect", "hr_direct_effect", "sv_direct_effect"]:
+        for key in reset_keys:
             st.session_state[key] = 0
         st.session_state.graph_version += 1
         st.session_state.phase = "select_box"
@@ -628,4 +1041,4 @@ if st.session_state.phase == "show_result":
         st.rerun()
 
 st.write("")
-st.caption("📝 Arrows show direction of change only. CO = HR × SV (simplified learning model).")
+st.caption("📝 Arrows show direction of change only. CO = HR × SV")
