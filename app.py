@@ -40,7 +40,7 @@ st.markdown(
         padding: 12px;
         background: #EFE7E5;
         text-align: center;
-        margin-bottom: 8px;
+        margin-bottom: 0px;
       }
       
       .header-box h4 {
@@ -446,15 +446,13 @@ with col_sv:
 # ---------------------------
 # ROW 5: Arrows to Cardiac Output
 # ---------------------------
-st.markdown(
-    """
-    <div style="display: flex; justify-content: center; margin: 15px 0;">
-        <span style="font-size: 2rem; margin-right: 150px;">↘</span>
-        <span style="font-size: 2rem; margin-left: 150px;">↙</span>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+col_arrow1, col_arrow2 = st.columns([1, 3])
+
+with col_arrow1:
+    st.markdown("<div style='text-align: center; font-size: 2rem; margin: 10px 0;'>↘</div>", unsafe_allow_html=True)
+
+with col_arrow2:
+    st.markdown("<div style='text-align: center; font-size: 2rem; margin: 10px 0;'>↙</div>", unsafe_allow_html=True)
 
 # ---------------------------
 # ROW 6: Cardiac Output (full width)
