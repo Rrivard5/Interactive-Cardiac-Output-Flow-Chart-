@@ -250,8 +250,10 @@ def compute_state():
     net_ino = st.session_state.ino_pos_effect - st.session_state.ino_neg_effect
     venous = st.session_state.venous_return_effect
     afterload = st.session_state.afterload_effect
-    hr = hr0 * (1 + HR_STEP * net_chrono)
-    sv = sv0 * (1 + SV_STEP * (net_ino + venous - afterload))
+    hr_direct = st.session_state.hr_direct_effect
+    sv_direct = st.session_state.sv_direct_effect
+    hr = hr0 * (1 + HR_STEP * (net_chrono + hr_direct))
+    sv = sv0 * (1 + SV_STEP * (net_ino + venous - afterload + sv_direct))
     hr = max(30, min(180, hr))
     sv = max(30, min(140, sv))
     co = hr * sv / 1000.0
@@ -281,6 +283,8 @@ defaults = {
     "ino_neg_effect": 0,
     "venous_return_effect": 0,
     "afterload_effect": 0,
+    "hr_direct_effect": 0,
+    "sv_direct_effect": 0,
     "phase": "select_box",
     "selected_node": None,
     "pending_direction": None,
@@ -490,6 +494,19 @@ with col_hr:
         """,
         unsafe_allow_html=True
     )
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("⬆️ Increase", key="hr_inc", use_container_width=True, disabled=disabled):
+            st.session_state.selected_node = "hr"
+            st.session_state.pending_direction = 1
+            st.session_state.phase = "predict"
+            st.rerun()
+    with c2:
+        if st.button("⬇️ Decrease", key="hr_dec", use_container_width=True, disabled=disabled):
+            st.session_state.selected_node = "hr"
+            st.session_state.pending_direction = -1
+            st.session_state.phase = "predict"
+            st.rerun()
 
 with col_sv:
     st.markdown(
@@ -502,6 +519,19 @@ with col_sv:
         """,
         unsafe_allow_html=True
     )
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("⬆️ Increase", key="sv_inc", use_container_width=True, disabled=disabled):
+            st.session_state.selected_node = "sv"
+            st.session_state.pending_direction = 1
+            st.session_state.phase = "predict"
+            st.rerun()
+    with c2:
+        if st.button("⬇️ Decrease", key="sv_dec", use_container_width=True, disabled=disabled):
+            st.session_state.selected_node = "sv"
+            st.session_state.pending_direction = -1
+            st.session_state.phase = "predict"
+            st.rerun()
 
 # ---------------------------
 # ROW 4: Arrows to Cardiac Output
@@ -551,6 +581,8 @@ if st.session_state.phase == "predict" and st.session_state.selected_node:
                     "ino_neg": "ino_neg_effect",
                     "venous": "venous_return_effect",
                     "afterload": "afterload_effect",
+                    "hr": "hr_direct_effect",
+                    "sv": "sv_direct_effect",
                 }
                 st.session_state[key_map[node]] = st.session_state.pending_direction
                 st.session_state.graph_version += 1
@@ -586,7 +618,7 @@ if st.session_state.phase == "show_result":
     st.write("")
     if st.button("🔄 Start a new round", type="primary", use_container_width=True):
         for key in ["chrono_pos_effect", "chrono_neg_effect", "ino_pos_effect", "ino_neg_effect",
-                    "venous_return_effect", "afterload_effect"]:
+                    "venous_return_effect", "afterload_effect", "hr_direct_effect", "sv_direct_effect"]:
             st.session_state[key] = 0
         st.session_state.graph_version += 1
         st.session_state.phase = "select_box"
