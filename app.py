@@ -410,9 +410,21 @@ with col4:
     st.markdown("<div class='correlation-text'>is inversely<br/>correlated with</div>", unsafe_allow_html=True)
 
 # ---------------------------
-# ROW 3: Arrows down
+# ROW 3: Arrows down (positioned under each section)
 # ---------------------------
-st.markdown("<div class='arrow-down'>↓</div>", unsafe_allow_html=True)
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+    st.markdown("<div class='arrow-down'>↓</div>", unsafe_allow_html=True)
+
+with col2:
+    st.write("")  # Empty - venous return arrow already shown above
+
+with col3:
+    st.markdown("<div class='arrow-down'>↓</div>", unsafe_allow_html=True)
+
+with col4:
+    st.write("")  # Empty - afterload arrow already shown above
 
 # ---------------------------
 # ROW 4: Heart Rate (col 1) and Stroke Volume (cols 2-4)
