@@ -630,25 +630,16 @@ else:
             f"""
             <div class='stimulus-box'>
                 <h5>Exercise</h5>
-                <div class='desc'>(↑ sympathetic activity, ↑ skeletal muscle pump, ↑ respiratory pump)</div>
                 <div class='arrow-display-small'>{exercise_arr}</div>
             </div>
             """,
             unsafe_allow_html=True
         )
-        c1, c2 = st.columns(2)
-        with c1:
-            if st.button("⬆️ Increase", key="exercise_inc", use_container_width=True, disabled=disabled):
-                st.session_state.selected_node = "exercise"
-                st.session_state.pending_direction = 1
-                st.session_state.phase = "predict"
-                st.rerun()
-        with c2:
-            if st.button("⬇️ Decrease", key="exercise_dec", use_container_width=True, disabled=disabled):
-                st.session_state.selected_node = "exercise"
-                st.session_state.pending_direction = -1
-                st.session_state.phase = "predict"
-                st.rerun()
+        if st.button("🏃 Begin Exercise", key="exercise_inc", use_container_width=True, disabled=disabled):
+            st.session_state.selected_node = "exercise"
+            st.session_state.pending_direction = 1
+            st.session_state.phase = "predict"
+            st.rerun()
 
     # Branching arrows
     st.markdown(
@@ -661,6 +652,17 @@ else:
         unsafe_allow_html=True
     )
 
+    # For boxes that show arrows only after stimulus is selected
+    show_arrows = exercise != 0
+    
+    venous_display = venous_arr if show_arrows else "—"
+    edv_display = edv_arr if show_arrows else "—"
+    sympathetic_display = sympathetic_arr if show_arrows else "—"
+    HR_display = HR_arrow if show_arrows else "—"
+    filling_display = filling_arr if show_arrows else "—"
+    SV_display = SV_arrow if show_arrows else "—"
+    CO_display = CO_arrow if show_arrows else "—"
+
     # ===== ROW 2: FIRST RESPONSES =====
     st.markdown("<div class='section-header'>Physiological Responses</div>", unsafe_allow_html=True)
     
@@ -671,8 +673,8 @@ else:
             f"""
             <div class='response-box'>
                 <h5>↑ Venous return</h5>
-                <div style='font-size:0.75rem;color:#555;'>(more blood returning to heart)</div>
-                <div class='arrow-display-small'>{venous_arr}</div>
+                <div style='font-size:0.75rem;color:#555;'>(blood returning to heart)</div>
+                <div class='arrow-display-small'>{venous_display}</div>
             </div>
             """,
             unsafe_allow_html=True
@@ -682,8 +684,8 @@ else:
             f"""
             <div class='response-box'>
                 <h5>↑ EDV (preload)</h5>
-                <div style='font-size:0.75rem;color:#555;'>(more blood in ventricle before contraction)</div>
-                <div class='arrow-display-small'>{edv_arr}</div>
+                <div style='font-size:0.75rem;color:#555;'>(amount of blood in ventricle before contraction)</div>
+                <div class='arrow-display-small'>{edv_display}</div>
             </div>
             """,
             unsafe_allow_html=True
@@ -695,8 +697,7 @@ else:
             f"""
             <div class='response-box'>
                 <h5>↑ Sympathetic activity</h5>
-                <div style='font-size:0.75rem;color:#555;'>(nervous system stimulation)</div>
-                <div class='arrow-display-small'>{sympathetic_arr}</div>
+                <div class='arrow-display-small'>{sympathetic_display}</div>
             </div>
             """,
             unsafe_allow_html=True
@@ -707,7 +708,7 @@ else:
             <div class='response-box'>
                 <h5>↑ Heart Rate</h5>
                 <div style='font-size:0.75rem;color:#555;'>(beats per minute)</div>
-                <div class='arrow-display-small'>{HR_arrow}</div>
+                <div class='arrow-display-small'>{HR_display}</div>
             </div>
             """,
             unsafe_allow_html=True
@@ -717,8 +718,7 @@ else:
             f"""
             <div class='response-box'>
                 <h5>↓ Ventricular filling time</h5>
-                <div style='font-size:0.75rem;color:#555;'>(less time to fill between beats)</div>
-                <div class='arrow-display-small'>{filling_arr}</div>
+                <div class='arrow-display-small'>{filling_display}</div>
             </div>
             """,
             unsafe_allow_html=True
@@ -733,7 +733,7 @@ else:
             <div class='result-box'>
                 <h4>↑ Stroke Volume (SV)</h4>
                 <div style='font-size:0.8rem;color:#555;'>(blood pumped per beat)</div>
-                <div class='arrow-display'>{SV_arrow}</div>
+                <div class='arrow-display'>{SV_display}</div>
             </div>
             """,
             unsafe_allow_html=True
@@ -759,7 +759,7 @@ else:
         <div class='co-box'>
             <h4>↑ Cardiac Output (CO = SV × HR)</h4>
             <div style='font-size:0.85rem;color:#555;'>(blood pumped per minute)</div>
-            <div class='arrow-display'>{CO_arrow}</div>
+            <div class='arrow-display'>{CO_display}</div>
         </div>
         """,
         unsafe_allow_html=True
